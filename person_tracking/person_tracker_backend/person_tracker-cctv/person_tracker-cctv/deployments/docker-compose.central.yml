@@ -1,0 +1,43 @@
+# SENTINEL PRO V4 - Central Deployment Blueprint (Phase 83)
+# Designed for global identity intelligence, investigations, and long-term storage.
+version: '3.8'
+
+services:
+  identity-intelligence:
+    image: sentinel-pro/central-ai:v4
+    restart: always
+    environment:
+      - NODE_ROLE=CENTRAL
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all # Uses all available GPUs in the datacenter
+              capabilities: [gpu]
+
+  investigation-api:
+    image: sentinel-pro/api-server:v4
+    restart: always
+    ports:
+      - "443:443"
+    environment:
+      - NODE_ROLE=CENTRAL
+      - DB_HOST=postgres
+      - VAULT_STORAGE_PATH=/vault
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+
+volumes:
+  pgdata:

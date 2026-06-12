@@ -1,0 +1,929 @@
+/* ==========================================================================
+   SENTINEL PRO — Live CCTV Monitoring Styles
+   Uses design tokens from index.css. Do NOT hardcode theme colors.
+   ========================================================================== */
+
+/* ==========================================================================
+   SECTION 1: Fullscreen Monitoring Overlay
+   ========================================================================== */
+
+/* The full-viewport overlay container */
+.fs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0a0e17;
+  display: flex;
+  animation: fs-fade-in 0.3s ease;
+}
+
+/* ---- Left sidebar navigation panel ---- */
+
+.fs-sidebar {
+  width: 280px;
+  background: rgba(15, 20, 35, 0.98);
+  border-right: 1px solid var(--border-primary);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.fs-sidebar-header {
+  padding: var(--sp-4) var(--sp-4);
+  border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fs-sidebar-title {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.fs-sidebar-count {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.fs-sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  scrollbar-width: thin;
+}
+
+/* ---- Individual stream entry in sidebar ---- */
+
+.fs-sidebar-stream {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.fs-sidebar-stream:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.fs-sidebar-stream.active {
+  background: var(--accent-blue-soft);
+  border-left: 3px solid var(--accent-blue);
+}
+
+.fs-sidebar-stream.detected {
+  background: var(--accent-red-soft);
+  border-left: 3px solid var(--accent-red);
+  animation: detection-pulse-subtle 2s ease-in-out infinite;
+}
+
+/* ---- Status dot next to stream name ---- */
+
+.fs-stream-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.fs-stream-status.online {
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+.fs-stream-status.detected {
+  background: var(--accent-red);
+  box-shadow: 0 0 6px var(--accent-red);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.fs-stream-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-stream-name {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-stream-location {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Main content area ---- */
+
+.fs-main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--sp-3);
+  gap: var(--sp-3);
+}
+
+/* ---- Top bar in main area ---- */
+
+.fs-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-2);
+}
+
+.fs-topbar-info {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.fs-topbar-cam-name {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+}
+
+.fs-topbar-cam-loc {
+  font-size: var(--fs-sm);
+  color: var(--text-tertiary);
+}
+
+.fs-topbar-live {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--accent-red);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.05em;
+}
+
+.fs-topbar-live-dot {
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ---- Primary / main feed display ---- */
+
+.fs-main-feed {
+  flex: 1;
+  background: var(--bg-card);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.fs-main-feed.suspect-detected {
+  border-color: var(--accent-red);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.3),
+              inset 0 0 30px rgba(239, 68, 68, 0.05);
+}
+
+/* ---- Stream canvas / video placeholder ---- */
+
+.fs-feed-canvas {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+}
+
+/* ---- Detection bounding box overlay ---- */
+
+.fs-detection-box {
+  position: absolute;
+  border: 3px solid var(--accent-red);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+  animation: detection-box-pulse 1.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.fs-detection-box::before {
+  content: 'SUSPECT';
+  position: absolute;
+  top: -22px;
+  left: 0;
+  background: var(--accent-red);
+  color: white;
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.05em;
+}
+
+.fs-detection-box::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  animation: detection-box-outer 2s ease-in-out infinite;
+}
+
+/* ---- Feed overlay info bar ---- */
+
+.fs-feed-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--sp-4) var(--sp-5);
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  z-index: 3;
+}
+
+.fs-feed-overlay-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fs-feed-cam-name {
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semibold);
+  color: white;
+}
+
+.fs-feed-cam-loc {
+  font-size: var(--fs-sm);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.fs-feed-timestamp {
+  font-size: var(--fs-xs);
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+
+/* ---- Secondary stream grid ---- */
+
+.fs-stream-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--sp-2);
+  max-height: 200px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* ---- Individual cell in the stream grid ---- */
+
+.fs-stream-cell {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.fs-stream-cell:hover {
+  border-color: var(--accent-blue);
+  transform: scale(1.02);
+}
+
+.fs-stream-cell.detected {
+  border-color: var(--accent-red);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+.fs-stream-cell-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+}
+
+.fs-stream-cell-name {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Bottom control bar ---- */
+
+.fs-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-2) 0;
+  flex-shrink: 0;
+  gap: var(--sp-4);
+}
+
+.fs-stop-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-6);
+  background: var(--accent-red);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  letter-spacing: 0.02em;
+}
+
+.fs-stop-btn:hover {
+  background: var(--accent-red-hover);
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+}
+
+.fs-stop-btn i {
+  width: 16px;
+  height: 16px;
+}
+
+.fs-esc-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  padding: var(--sp-1) var(--sp-3);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-full);
+}
+
+/* ---- Exit Fullscreen button ---- */
+
+.fs-exit-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-5);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  letter-spacing: 0.02em;
+}
+
+.fs-exit-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.03);
+}
+
+.fs-exit-btn i {
+  width: 14px;
+  height: 14px;
+}
+
+
+/* ==========================================================================
+   SECTION 2: Config Page — Stream Preview Thumbnails
+   ========================================================================== */
+
+.stream-preview-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.stream-preview-card:hover {
+  border-color: var(--border-secondary);
+  box-shadow: var(--shadow-md);
+}
+
+.stream-preview-thumb {
+  aspect-ratio: 16 / 9;
+  background: #0a0e17;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.stream-preview-thumb canvas {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+
+.stream-preview-thumb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  animation: scanline 8s linear infinite;
+}
+
+.stream-preview-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stream-preview-name {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: white;
+}
+
+.stream-preview-loc {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.stream-preview-live {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--accent-green);
+  font-weight: var(--fw-bold);
+}
+
+.stream-preview-live-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.stream-preview-body {
+  padding: var(--sp-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stream-preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stream-preview-info-name {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+}
+
+.stream-preview-info-loc {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.streams-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--sp-3);
+}
+
+
+/* ==========================================================================
+   SECTION 3: Config Section Headers
+   ========================================================================== */
+
+.config-section {
+  margin-bottom: var(--sp-4);
+}
+
+.config-section-title {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.config-section-title i {
+  width: 22px;
+  height: 22px;
+  color: var(--accent-blue);
+}
+
+.config-section-title .section-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--accent-blue-soft);
+  color: var(--accent-blue);
+  border-radius: var(--radius-full);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  flex-shrink: 0;
+}
+
+
+/* ==========================================================================
+   SECTION 4: Detection Alert Cards (on config page)
+   ========================================================================== */
+
+.detection-alert-card {
+  background: var(--bg-card);
+  border: 1px solid var(--accent-red);
+  border-left: 4px solid var(--accent-red);
+  border-radius: var(--radius-md);
+  padding: var(--sp-4);
+  display: flex;
+  gap: var(--sp-4);
+  animation: slide-in-alert 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.detection-alert-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), transparent);
+  pointer-events: none;
+}
+
+.detection-alert-snapshot {
+  width: 120px;
+  height: 80px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-primary);
+}
+
+.detection-alert-snapshot .alert-detection-box {
+  position: absolute;
+  border: 2px solid var(--accent-red);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.detection-alert-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.detection-alert-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.detection-alert-cam {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--accent-red);
+}
+
+.detection-alert-time {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+.detection-alert-loc {
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.detection-alert-loc i {
+  width: 12px;
+  height: 12px;
+}
+
+.detection-alert-summary {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: var(--sp-1);
+}
+
+.detection-alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+
+/* ==========================================================================
+   SECTION 5: Saved Stream Library
+   ========================================================================== */
+
+.saved-library-tabs {
+  display: flex;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+  background: var(--bg-tertiary);
+  padding: var(--sp-1);
+  border-radius: var(--radius-md);
+}
+
+.saved-library-tab {
+  flex: 1;
+  padding: var(--sp-2);
+  text-align: center;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.saved-library-tab:hover {
+  color: var(--text-secondary);
+}
+
+.saved-library-tab.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.saved-stream-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.saved-stream-entry:hover {
+  background: var(--bg-card-hover);
+}
+
+.saved-stream-favorite {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+.saved-stream-favorite:hover {
+  color: var(--accent-amber);
+}
+
+.saved-stream-favorite.active {
+  color: var(--accent-amber);
+}
+
+.saved-stream-favorite i {
+  width: 14px;
+  height: 14px;
+}
+
+
+/* ==========================================================================
+   SECTION 6: Canvas / Feed Placeholder Styling
+   ========================================================================== */
+
+.feed-noise-canvas {
+  background: #0d1117;
+}
+
+.feed-placeholder-content {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-tertiary);
+  z-index: 2;
+}
+
+.feed-placeholder-content i {
+  width: 48px;
+  height: 48px;
+  opacity: 0.4;
+}
+
+.feed-placeholder-content .feed-cam-label {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+}
+
+.feed-placeholder-content .feed-status-text {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+}
+
+
+/* ==========================================================================
+   SECTION 7: Animations
+   NOTE: @keyframes pulse is defined globally — not redefined here.
+   ========================================================================== */
+
+@keyframes fs-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes detection-box-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.5); }
+  50%      { box-shadow: 0 0 24px rgba(239, 68, 68, 0.8); }
+}
+
+@keyframes detection-box-outer {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.7; }
+}
+
+@keyframes detection-pulse-subtle {
+  0%, 100% { background: var(--accent-red-soft); }
+  50%      { background: rgba(239, 68, 68, 0.15); }
+}
+
+@keyframes slide-in-alert {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scanline {
+  from { background-position: 0 0; }
+  to   { background-position: 0 100%; }
+}
+
+@keyframes noise-flicker {
+  0%   { opacity: 0.8; }
+  10%  { opacity: 0.7; }
+  20%  { opacity: 0.85; }
+  30%  { opacity: 0.75; }
+  40%  { opacity: 0.9; }
+  50%  { opacity: 0.8; }
+  60%  { opacity: 0.7; }
+  70%  { opacity: 0.85; }
+  80%  { opacity: 0.75; }
+  90%  { opacity: 0.9; }
+  100% { opacity: 0.8; }
+}
+
+
+/* ==========================================================================
+   SECTION 8: Responsive Breakpoints
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+  .fs-sidebar {
+    width: 220px;
+  }
+
+  .fs-stream-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .fs-sidebar {
+    width: 200px;
+  }
+
+  .fs-stream-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    max-height: 150px;
+  }
+
+  .streams-preview-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .fs-overlay {
+    flex-direction: column;
+  }
+
+  .fs-sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 120px;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border-primary);
+  }
+
+  .fs-sidebar-header {
+    display: none;
+  }
+
+  .fs-sidebar-list {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: var(--sp-2);
+  }
+
+  .fs-sidebar-stream {
+    min-width: 140px;
+    flex-shrink: 0;
+  }
+
+  .fs-stream-grid {
+    grid-template-columns: 1fr 1fr;
+    max-height: 120px;
+  }
+
+  .streams-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detection-alert-card {
+    flex-direction: column;
+  }
+
+  .detection-alert-snapshot {
+    width: 100%;
+    height: 120px;
+  }
+}

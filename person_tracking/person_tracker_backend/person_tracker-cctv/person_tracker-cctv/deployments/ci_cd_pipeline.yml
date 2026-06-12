@@ -1,0 +1,64 @@
+# SENTINEL PRO V4 - Enterprise CI/CD Pipeline (Phase 84)
+name: Sentinel Pro Enterprise Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install flake8 mypy bandit
+      - name: Run Linter
+        run: flake8 backend/
+      - name: Run Type Checker
+        run: mypy backend/
+      - name: Run Security Scanner
+        run: bandit -r backend/
+
+  unit-tests:
+    needs: static-analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install PyTest
+        run: pip install pytest pytest-asyncio
+      - name: Run Core Tests
+        run: pytest backend/tests/core/
+      - name: Run AI Pipeline Tests
+        run: pytest backend/tests/ai_core/
+
+  build-and-push:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Edge Image
+        run: docker build -t sentinel-pro/edge-ingestor:latest -f deployments/Dockerfile.edge .
+      - name: Build Central Image
+        run: docker build -t sentinel-pro/central-ai:latest -f deployments/Dockerfile.central .
+      - name: Push to Registry
+        run: |
+          echo "Simulating push to Enterprise Container Registry"
+          # docker push sentinel-pro/edge-ingestor:latest
+          # docker push sentinel-pro/central-ai:latest
+
+  canary-deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Trigger Canary Deployment
+        run: |
+          echo "Triggering Phase 87 Canary Deployment to production shadow fleet..."
+          # ./deploy_scripts/trigger_canary.sh

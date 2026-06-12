@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENTINEL PRO | Forensic Intelligence Workstation</title>
+
+    <!-- Core Assets -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fef2f2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            950: '#450a0a',
+                        },
+                        slate: {
+                            850: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    },
+                    animation: {
+                        'scan-line': 'scan 3s linear infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bar-bounce': 'bounceBars 0.6s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        scan: {
+                            '0%': { transform: 'translateY(-100%)', opacity: '0' },
+                            '50%': { opacity: '1' },
+                            '100%': { transform: 'translateY(100%)', opacity: '0' },
+                        },
+                        bounceBars: {
+                            '0%': { height: '20%' },
+                            '100%': { height: '100%' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sidebar-item.active {
+            background: #dc2626;
+            color: white;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+
+        .neural-bar {
+            width: 3px;
+            background: #dc2626;
+            border-radius: 2px;
+        }
+
+        .hex-text {
+            font-size: 10px;
+            line-height: 12px;
+            color: #059669;
+            opacity: 0.6;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Premium card hover glow */
+        .intake-card {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .intake-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 0.85rem;
+            padding: 1px;
+            background: linear-gradient(135deg, transparent 40%, rgba(220, 38, 38, 0.0) 50%, transparent 60%);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+            transition: all 0.4s ease;
+        }
+
+        .intake-card:hover::before {
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.3) 0%, rgba(239, 68, 68, 0.15) 50%, rgba(220, 38, 38, 0.3) 100%);
+        }
+
+        .intake-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(220, 38, 38, 0.1);
+        }
+
+        /* Icon gradient */
+        .icon-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        /* Step number badge */
+        .step-badge {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            color: white;
+            font-size: 10px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+        }
+
+        /* Slider custom style */
+        input[type='range']::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+        }
+
+        /* Fullscreen Helper */
+        :fullscreen {
+            background-color: black !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        :fullscreen img, :fullscreen video {
+            flex-grow: 1 !important;
+            object-fit: contain !important;
+        }
+        #cctv-camera-grid:fullscreen {
+            display: grid !important;
+            padding: 1rem !important;
+            background-color: #020617 !important; /* slate-950 */
+            overflow-y: auto !important;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex overflow-hidden">
+
+    <!-- UPLOAD OVERLAY (Solves Upload Hang/Freeze) -->
+    <div id="upload-overlay"
+        class="fixed inset-0 bg-slate-950/95 z-[100] flex flex-col items-center justify-center hidden">
+        <div class="w-96 text-center space-y-6">
+            <div class="relative mx-auto h-24 w-24 flex items-center justify-center">
+                <div class="absolute inset-0 border-4 border-slate-800 rounded-full"></div>
+                <div class="absolute inset-0 border-t-4 border-brand-600 rounded-full animate-spin"></div>
+                <i class="fa-solid fa-cloud-arrow-up text-3xl text-brand-600 animate-pulse"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-white tracking-widest">UPLOADING EVIDENCE</h2>
+                <p class="text-xs text-slate-500 mt-2 font-mono uppercase tracking-tighter">Initializing Secure Data
+                    Transfer</p>
+            </div>
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-700 shadow-inner">
+                <div id="upload-bar" class="h-full bg-brand-600 w-0 transition-all duration-100"></div>
+            </div>
+            <p class="text-xs text-brand-500 font-mono font-bold" id="upload-pct">0% COMPLETE</p>
+            <p class="text-[9px] text-slate-600 mt-4 italic">Note: Transfer speed depends on file size and connection.
+            </p>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar"
+        class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-950 text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col shadow-2xl">
+        <div class="p-6 border-b border-slate-800">
+            <div class="flex items-center gap-3">
+                <div
+                    class="h-10 w-10 bg-brand-600 rounded flex items-center justify-center shadow-lg shadow-brand-900/50">
+                    <i class="fa-solid fa-shield-halved text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tighter">SENTINEL<span class="text-brand-600">PRO</span></h1>
+                    <p class="text-[9px] font-bold text-slate-500 tracking-[0.3em] uppercase">Intelligence Unit</p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-grow p-4 space-y-2">
+            <button onclick="switchView('intake')" id="nav-intake"
+                class="sidebar-item active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all">
+                <i class="fa-solid fa-folder-plus w-5"></i> Case Intake
+            </button>
+            <button onclick="switchView('live')" id="nav-live"
+                class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all">
+                <i class="fa-solid fa-tower-broadcast w-5"></i> Live Hub
+            </button>
+            <button onclick="switchView('cctv')" id="nav-cctv"
+                class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all">
+                <i class="fa-solid fa-video w-5"></i> Live CCTV
+                <span id="cctv-live-dot" class="ml-auto h-2 w-2 rounded-full bg-slate-600 hidden"></span>
+            </button>
+            <button onclick="switchView('vault')" id="nav-vault"
+                class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all">
+                <i class="fa-solid fa-box-archive w-5"></i> Evidence Vault
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 bg-slate-900/50">
+            <div class="flex items-center gap-2 text-[10px] text-slate-400">
+                <div class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                SYSTEM ENCRYPTED & SECURE
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-grow lg:ml-64 flex flex-col h-screen overflow-hidden">
+
+        <!-- HEADER -->
+        <header
+            class="h-16 bg-slate-950/80 backdrop-blur-lg border-b border-slate-800/80 flex items-center justify-between px-6 shrink-0 z-10 relative">
+            <div
+                class="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand-600 to-transparent opacity-20">
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="lg:hidden text-slate-600 text-xl"><i
+                        class="fa-solid fa-bars"></i></button>
+                <div class="flex flex-col">
+                    <h2 class="text-sm font-bold text-slate-200 uppercase tracking-tight" id="view-title">Evidence
+                        Intake</h2>
+                    <p class="text-[10px] text-slate-500 font-mono" id="case-id-display">SESSION_ID: UNASSIGNED</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="global-action-btn" onclick="startUploadAndProcess()"
+                    class="bg-gradient-to-r from-brand-700 to-brand-600 text-white px-6 py-2.5 rounded-lg text-xs font-bold shadow-lg shadow-brand-200/50 flex items-center gap-2 hover:from-brand-600 hover:to-brand-500 transition-all active:scale-95">
+                    <i class="fa-solid fa-bolt"></i> RUN PIPELINE
+                </button>
+            </div>
+        </header>
+
+        <!-- VIEW CONTAINER -->
+        <div
+            class="flex-grow overflow-y-auto p-4 lg:p-8 bg-slate-950 custom-scroll">
+
+            <!-- 1. INTAKE SECTION -->
+            <div id="view-intake" class="view-section active">
+                <!-- Section Intro -->
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-slate-100 tracking-tight">New Forensic Case</h2>
+                    <p class="text-sm text-slate-500 mt-1">Upload evidence and configure detection parameters to begin
+                        analysis.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-8 space-y-6">
+                        <!-- Evidence Source Card -->
+                        <div
+                            class="intake-card bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-0 overflow-hidden">
+                            <div class="flex items-center gap-2 px-6 pt-5 pb-0">
+                                <div class="step-badge"><i class="fa-solid fa-video text-[10px]"></i></div>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Evidence
+                                    Source</span>
+                            </div>
+                            <div class="p-8 pt-5 text-center">
+                                <input type="file" id="video-input" class="hidden" accept="video/*">
+                                <label for="video-input" class="cursor-pointer flex flex-col items-center">
+                                    <div
+                                        class="h-20 w-20 icon-gradient rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+                                        <i class="fa-solid fa-file-video text-2xl text-brand-600"></i>
+                                    </div>
+                                    <h3 class="text-base font-bold text-slate-200 tracking-tight">Upload Surveillance
+                                        Footage</h3>
+                                    <p class="text-xs text-slate-500 mt-1 max-w-xs">Drag & drop or click to select a
+                                        video file for forensic deep indexing</p>
+                                </label>
+                                <div id="video-details" class="hidden mt-6 pt-6 border-t border-slate-800">
+                                    <div class="grid grid-cols-3 gap-4 text-left">
+                                        <div class="bg-slate-850 rounded-lg p-3">
+                                            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">File
+                                                Name</p>
+                                            <p id="det-name" class="text-xs font-bold text-slate-300 truncate mt-0.5">--
+                                            </p>
+                                        </div>
+                                        <div class="bg-slate-850 rounded-lg p-3">
+                                            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                                                Duration</p>
+                                            <p id="det-dur" class="text-xs font-bold text-slate-300 mt-0.5">--</p>
+                                        </div>
+                                        <div class="bg-slate-850 rounded-lg p-3">
+                                            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                                                Status</p>
+                                            <p
+                                                class="text-xs font-bold text-emerald-400 uppercase tracking-tighter mt-0.5">
+                                                <i class="fa-solid fa-circle-check mr-1"></i>READY
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button id="play-source-btn" onclick="playLocalSource()"
+                                        class="mt-4 w-full bg-slate-900 text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-blue-600 transition-all active:scale-95">
+                                        <i class="fa-solid fa-play"></i> Play Source Footage
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Subject Profiles Card -->
+                        <div
+                            class="intake-card bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-0 overflow-hidden">
+                            <div class="flex items-center gap-2 px-6 pt-5 pb-0">
+                                <div class="step-badge"><i class="fa-solid fa-user-group text-[10px]"></i></div>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Subject
+                                    Profiles</span>
+                            </div>
+                            <div class="p-8 pt-5 text-center">
+                                <input type="file" id="ref-input" class="hidden" multiple accept="image/*">
+                                <label for="ref-input" class="cursor-pointer flex flex-col items-center">
+                                    <div
+                                        class="h-20 w-20 icon-gradient rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm">
+                                        <i class="fa-solid fa-user-secret text-2xl text-brand-600"></i>
+                                    </div>
+                                    <h3 class="text-base font-bold text-slate-200 tracking-tight">Upload Target Mugshots
+                                    </h3>
+                                    <p class="text-xs text-slate-500 mt-1 max-w-xs">Add one or more reference images of
+                                        the person to identify</p>
+                                </label>
+                                <div id="ref-gallery"
+                                    class="hidden mt-6 pt-6 border-t border-slate-800 grid grid-cols-4 md:grid-cols-6 gap-3 items-center">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Engine Tuning Panel -->
+                    <div class="lg:col-span-4">
+                        <div
+                            class="intake-card bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-0 overflow-hidden sticky top-4">
+                            <div class="flex items-center gap-2 px-6 pt-5 pb-0">
+                                <div class="step-badge"><i class="fa-solid fa-sliders text-[10px]"></i></div>
+                                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Engine
+                                    Configuration</span>
+                            </div>
+                            <div class="p-6 pt-5 space-y-6">
+                                <div>
+                                    <label
+                                        class="text-[10px] font-bold text-slate-500 uppercase block mb-3 tracking-wider">Analysis
+                                        Logic</label>
+                                    <div class="grid grid-cols-3 gap-1.5 bg-slate-850 p-1 rounded-lg">
+                                        <button onclick="setMode('face', this)"
+                                            class="mode-btn py-2 rounded-md text-[10px] font-bold transition-all hover:bg-white/10">FACE</button>
+                                        <button onclick="setMode('body', this)"
+                                            class="mode-btn py-2 rounded-md text-[10px] font-bold transition-all hover:bg-white/10">BODY</button>
+                                        <button onclick="setMode('hybrid', this)"
+                                            class="mode-btn bg-slate-800 text-brand-500 shadow-sm py-2 rounded-md text-[10px] font-bold transition-all">HYBRID</button>
+                                    </div>
+                                    <input type="hidden" id="mode-val" value="hybrid">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <label
+                                            class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Detection
+                                            Sensitivity</label>
+                                        <span
+                                            class="text-xs font-mono font-bold text-brand-500 bg-brand-950/30 px-2 py-0.5 rounded"
+                                            id="thresh-val">0.75</span>
+                                    </div>
+                                    <input type="range" id="threshold" min="0.5" max="0.95" step="0.05" value="0.75"
+                                        class="w-full accent-brand-600 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                                    <div class="flex justify-between mt-1">
+                                        <span class="text-[9px] text-slate-300 font-mono">WIDE NET</span>
+                                        <span class="text-[9px] text-slate-300 font-mono">PRECISE</span>
+                                    </div>
+                                </div>
+                                <div class="pt-4 border-t border-slate-800 space-y-3">
+                                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2">Active
+                                        Modules</p>
+                                    <label class="flex items-center gap-2.5 text-[10px] font-semibold text-slate-500">
+                                        <input type="checkbox" checked disabled class="accent-brand-600 rounded">
+                                        <span>Temporal Consistency</span>
+                                        <span
+                                            class="ml-auto text-[8px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-bold">ON</span>
+                                    </label>
+                                    <label class="flex items-center gap-2.5 text-[10px] font-semibold text-slate-500">
+                                        <input type="checkbox" checked disabled class="accent-brand-600 rounded">
+                                        <span>Real-ESRGAN Upscale</span>
+                                        <span
+                                            class="ml-auto text-[8px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-bold">ON</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. LIVE HUB (Command Deck Mode) -->
+            <div id="view-live" class="view-section h-full">
+                <div class="flex flex-col h-[calc(100vh-8rem)]">
+                    <div
+                        class="flex-grow bg-slate-950 rounded-2xl shadow-2xl border border-slate-800 relative overflow-hidden flex flex-col">
+
+                        <!-- Top Monitor Header -->
+                        <div
+                            class="h-12 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 z-20">
+                            <div class="flex items-center gap-4">
+                                <div
+                                    class="text-brand-500 font-mono text-[10px] animate-pulse uppercase font-bold tracking-widest">
+                                    ● LIVE INFERENCE</div>
+                                <div class="h-4 w-[1px] bg-slate-700"></div>
+                                <div class="text-slate-400 font-mono text-[9px] uppercase tracking-tighter"
+                                    id="stage-text">SYSTEM STANDBY</div>
+                            </div>
+                            <div class="text-white font-mono text-lg font-bold" id="live-pct">0%</div>
+                        </div>
+
+                        <!-- Main Screen Container -->
+                        <div class="flex-grow relative flex">
+                            <video id="processed-video"
+                                class="w-full h-full object-contain absolute inset-0 z-30 hidden bg-black"
+                                controls></video>
+
+                            <div id="command-deck" class="absolute inset-0 flex z-10">
+                                <!-- Left: Scrolling Hex Feed -->
+                                <div
+                                    class="w-48 bg-slate-950/70 border-r border-slate-800 p-4 hidden md:block overflow-hidden relative">
+                                    <div
+                                        class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-slate-950 z-10">
+                                    </div>
+                                    <div id="hex-dump" class="hex-text flex flex-col-reverse h-full"></div>
+                                </div>
+
+                                <!-- Center: Neural Pulse -->
+                                <div class="flex-grow relative flex items-center justify-center bg-slate-900/40">
+                                    <div class="absolute inset-0 opacity-10"
+                                        style="background-image: linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px); background-size: 40px 40px;">
+                                    </div>
+
+                                    <div class="relative z-10 text-center space-y-8">
+                                        <div class="relative h-44 w-44 mx-auto flex items-center justify-center">
+                                            <div class="absolute inset-0 border-4 border-slate-800 rounded-full"></div>
+                                            <div
+                                                class="absolute inset-0 border-t-4 border-brand-600 rounded-full animate-spin">
+                                            </div>
+                                            <i
+                                                class="fa-solid fa-fingerprint text-6xl text-slate-700 animate-pulse"></i>
+                                        </div>
+                                        <div>
+                                            <h2 class="text-2xl font-bold text-white tracking-[0.3em] uppercase">
+                                                Processing</h2>
+                                            <p class="text-xs text-brand-500 font-mono mt-2 font-bold tracking-widest"
+                                                id="fps-display">HANDSHAKING GPU...</p>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="absolute bottom-4 left-0 right-0 h-16 flex items-end justify-center gap-1.5 opacity-30 px-20 overflow-hidden">
+                                        <div class="neural-bar h-4 animate-bar-bounce" style="animation-delay: 0.1s">
+                                        </div>
+                                        <div class="neural-bar h-8 animate-bar-bounce" style="animation-delay: 0.3s">
+                                        </div>
+                                        <div class="neural-bar h-6 animate-bar-bounce" style="animation-delay: 0.2s">
+                                        </div>
+                                        <div class="neural-bar h-12 animate-bar-bounce" style="animation-delay: 0.5s">
+                                        </div>
+                                        <div class="neural-bar h-5 animate-bar-bounce" style="animation-delay: 0.4s">
+                                        </div>
+                                        <div class="neural-bar h-10 animate-bar-bounce" style="animation-delay: 0.1s">
+                                        </div>
+                                        <div class="neural-bar h-4 animate-bar-bounce" style="animation-delay: 0.3s">
+                                        </div>
+                                        <div class="neural-bar h-8 animate-bar-bounce" style="animation-delay: 0.2s">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right: Event Log Stream -->
+                                <div class="w-80 bg-slate-950/90 border-l border-slate-800 flex flex-col">
+                                    <div
+                                        class="p-3 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+                                        <h3 class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                            Activity Stream</h3>
+                                        <div class="h-2 w-2 rounded-full bg-brand-500 animate-ping"></div>
+                                    </div>
+                                    <div id="activity-log"
+                                        class="flex-grow p-4 overflow-y-auto space-y-4 font-mono text-[10px] custom-scroll">
+                                        <!-- Real-time logs will populate here -->
+                                        <div class="text-slate-600 italic">> Establishing neural network...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monitor Footer: Progress Stats -->
+                        <div
+                            class="h-20 bg-slate-950 border-t border-slate-800 p-6 flex flex-col justify-center shrink-0 z-20">
+                            <div class="flex justify-between items-center text-[10px] font-bold text-slate-500 mb-2">
+                                <div class="flex gap-4">
+                                    <span>HITS: <span id="metric-hits" class="text-brand-500 font-mono">0</span></span>
+                                    <span>TOP_SIM: <span id="metric-conf"
+                                            class="text-emerald-500 font-mono">0%</span></span>
+                                </div>
+                                <span id="eta-display"
+                                    class="text-white uppercase tracking-tighter">ESTIMATING...</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden shadow-inner">
+                                <div id="main-progress"
+                                    class="h-full bg-gradient-to-r from-brand-700 to-brand-500 w-0 transition-all duration-300 relative shadow-lg">
+                                    <div class="absolute inset-0 bg-white/10"
+                                        style="background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent); background-size: 1rem 1rem;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. LIVE CCTV DASHBOARD -->
+            <div id="view-cctv" class="view-section">
+                <div class="space-y-6">
+
+                    <!-- Session Banner -->
+                    <div id="cctv-session-banner" class="intake-card bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-6">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
+                                    <i class="fa-solid fa-tower-broadcast text-brand-600"></i> Live CCTV Tracking
+                                </h2>
+                                <p class="text-xs text-slate-500 mt-1" id="cctv-session-info">No active session. Configure streams and start tracking below.</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div id="cctv-status-badge" class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-slate-800 text-slate-400">
+                                    OFFLINE
+                                </div>
+                                <button id="cctv-stop-btn" onclick="cctvStopSession()" class="hidden bg-slate-950 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-600 transition-all active:scale-95">
+                                    <i class="fa-solid fa-stop mr-1"></i> STOP SESSION
+                                </button>
+                                <button onclick="cctvFullscreen('cctv-camera-grid')" class="bg-slate-900 border border-slate-800 text-slate-300 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 transition-all active:scale-95">
+                                    <i class="fa-solid fa-expand mr-1"></i> MAXIMIZE GRID
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                        <!-- Left Column: Setup -->
+                        <div class="lg:col-span-5 space-y-6">
+
+                            <!-- Stream Configuration -->
+                            <div class="intake-card bg-slate-900 rounded-xl shadow-sm border border-slate-800 overflow-hidden">
+                                <div class="flex items-center gap-2 px-6 pt-5 pb-0">
+                                    <div class="step-badge"><i class="fa-solid fa-tower-broadcast text-[10px]"></i></div>
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Camera Streams</span>
+                                </div>
+                                <div class="p-6 pt-4 space-y-4">
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 tracking-wider">Stream URL</label>
+                                            <input type="text" id="cctv-stream-url" placeholder="rtsp://... or http://..."
+                                                class="w-full bg-slate-850 border border-slate-800 rounded-lg px-3 py-2.5 text-xs font-mono text-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all">
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 tracking-wider">Camera Name</label>
+                                                <input type="text" id="cctv-stream-name" placeholder="e.g. Lobby Cam"
+                                                    class="w-full bg-slate-850 border border-slate-800 rounded-lg px-3 py-2.5 text-xs text-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all">
+                                            </div>
+                                            <div>
+                                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1 tracking-wider">Location</label>
+                                                <input type="text" id="cctv-stream-location" placeholder="e.g. Building A"
+                                                    class="w-full bg-slate-850 border border-slate-800 rounded-lg px-3 py-2.5 text-xs text-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all">
+                                            </div>
+                                        </div>
+                                        <button onclick="cctvAddStream()" class="w-full bg-slate-900 text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-95">
+                                            <i class="fa-solid fa-plus"></i> Add Stream
+                                        </button>
+                                    </div>
+                                    <div id="cctv-stream-list" class="space-y-2 max-h-48 overflow-y-auto">
+                                        <!-- Stream items appear here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Subject & Config -->
+                            <div class="intake-card bg-slate-900 rounded-xl shadow-sm border border-slate-800 overflow-hidden">
+                                <div class="flex items-center gap-2 px-6 pt-5 pb-0">
+                                    <div class="step-badge"><i class="fa-solid fa-user-gear text-[10px]"></i></div>
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Target & Configuration</span>
+                                </div>
+                                <div class="p-6 pt-4 space-y-4">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1.5 tracking-wider">Target Reference Images</label>
+                                        <input type="file" id="cctv-ref-input" class="hidden" multiple accept="image/*">
+                                        <label for="cctv-ref-input" class="cursor-pointer flex items-center gap-3 bg-slate-850 border border-dashed border-slate-700 rounded-lg px-4 py-3 hover:border-brand-500 transition-all">
+                                            <div class="h-10 w-10 icon-gradient rounded-lg flex items-center justify-center shrink-0">
+                                                <i class="fa-solid fa-user-secret text-brand-600"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-bold text-slate-200">Upload Suspect Photos</p>
+                                                <p class="text-[10px] text-slate-500">Click to select reference images</p>
+                                            </div>
+                                        </label>
+                                        <div id="cctv-ref-gallery" class="hidden mt-3 grid grid-cols-6 gap-2"></div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1.5 tracking-wider">Analysis Mode</label>
+                                            <div class="grid grid-cols-3 gap-1 bg-slate-850 p-1 rounded-lg">
+                                                <button onclick="cctvSetMode('face', this)" class="cctv-mode-btn py-2 rounded-md text-[10px] font-bold transition-all hover:bg-white/10">FACE</button>
+                                                <button onclick="cctvSetMode('body', this)" class="cctv-mode-btn py-2 rounded-md text-[10px] font-bold transition-all hover:bg-white/10">BODY</button>
+                                                <button onclick="cctvSetMode('hybrid', this)" class="cctv-mode-btn bg-slate-800 text-brand-500 shadow-sm py-2 rounded-md text-[10px] font-bold transition-all">HYBRID</button>
+                                            </div>
+                                            <input type="hidden" id="cctv-mode-val" value="hybrid">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1.5 tracking-wider">Threshold</label>
+                                            <div class="flex items-center gap-2">
+                                                <input type="range" id="cctv-threshold" min="0.3" max="0.9" step="0.05" value="0.55"
+                                                    class="flex-grow accent-brand-600 h-1.5 bg-slate-850 rounded-lg appearance-none cursor-pointer">
+                                                <span class="text-xs font-mono font-bold text-brand-500 bg-brand-950/30 px-2 py-0.5 rounded" id="cctv-thresh-val">0.55</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button id="cctv-start-btn" onclick="cctvStartSession()" class="w-full bg-gradient-to-r from-brand-700 to-brand-600 text-white py-3 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-brand-200/50 hover:from-brand-600 hover:to-brand-500 transition-all active:scale-95">
+                                        <i class="fa-solid fa-satellite-dish"></i> START LIVE SESSION
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Live Grid + Alerts -->
+                        <div class="lg:col-span-7 space-y-6">
+
+                            <!-- Live Camera Grid -->
+                            <div class="intake-card bg-slate-900 rounded-xl shadow-sm border border-slate-800 overflow-hidden">
+                                <div class="flex items-center justify-between px-6 pt-5 pb-0">
+                                    <div class="flex items-center gap-2">
+                                        <div class="step-badge" style="background: linear-gradient(135deg, #059669, #10b981);"><i class="fa-solid fa-border-all text-[8px]"></i></div>
+                                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Camera Grid</span>
+                                    </div>
+                                    <div class="text-[10px] font-mono text-slate-400" id="cctv-stream-count">0 streams</div>
+                                </div>
+                                <div id="cctv-camera-grid" class="p-4 grid grid-cols-1 md:grid-cols-2 gap-3 min-h-[300px]">
+                                    <div class="col-span-full flex flex-col items-center justify-center py-12 text-slate-700">
+                                        <i class="fa-solid fa-video-slash text-4xl mb-3"></i>
+                                        <p class="text-xs font-bold uppercase tracking-wider">No Active Streams</p>
+                                        <p class="text-[10px] text-slate-500 mt-1">Start a session to see live camera feeds</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Alert Feed -->
+                            <div class="intake-card bg-slate-900 rounded-xl shadow-sm border border-slate-800 overflow-hidden">
+                                <div class="flex items-center justify-between px-6 pt-5 pb-0">
+                                    <div class="flex items-center gap-2">
+                                        <div class="step-badge" style="background: linear-gradient(135deg, #dc2626, #f87171);"><i class="fa-solid fa-bolt-lightning text-[8px]"></i></div>
+                                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Detection Alerts</span>
+                                    </div>
+                                    <div class="text-[10px] font-mono font-bold text-brand-600" id="cctv-alert-count">0 alerts</div>
+                                </div>
+                                <div id="cctv-alert-feed" class="p-4 space-y-2 max-h-[400px] overflow-y-auto">
+                                    <div class="flex flex-col items-center justify-center py-8 text-slate-700">
+                                        <i class="fa-solid fa-shield-halved text-3xl mb-3"></i>
+                                        <p class="text-xs font-bold uppercase tracking-wider">Monitoring Standby</p>
+                                        <p class="text-[10px] text-slate-500 mt-1">Alerts will appear here when targets are detected</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. EVIDENCE VAULT -->
+            <div id="view-vault" class="view-section">
+                <div class="space-y-12">
+                    <div class="space-y-4">
+                        <h3
+                            class="text-sm font-bold text-slate-200 uppercase border-l-4 border-blue-500 pl-4 tracking-tighter">
+                            Source Footage</h3>
+                        <div id="source-gallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <h3
+                            class="text-sm font-bold text-slate-200 uppercase border-l-4 border-brand-600 pl-4 tracking-tighter">
+                            Master Archives</h3>
+                        <div id="master-gallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <h3
+                            class="text-sm font-bold text-slate-200 uppercase border-l-4 border-emerald-500 pl-4 tracking-tighter">
+                            Isolated Sightings</h3>
+                        <div id="sighting-gallery" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let currentCaseId = null;
+        let videoDuration = 0;
+        let pollInterval = null;
+        let selectedVideoFile = null;
+        let evidenceVideoUrl = null;
+        let localVideoObjectUrl = null;
+        let selectedRefFiles = [];
+
+        // --- 1. HUD DYNAMICS (Hex Stream) ---
+        function startHexDump() {
+            const el = document.getElementById('hex-dump');
+            setInterval(() => {
+                const hex = Math.random().toString(16).substring(2, 10).toUpperCase();
+                const mem = "0x" + Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0');
+                const div = document.createElement('div');
+                div.innerText = `${mem} :: ${hex} ... READ`;
+                el.prepend(div);
+                if (el.children.length > 35) el.lastChild.remove();
+            }, 120);
+        }
+        startHexDump();
+
+        // --- 2. VIEW CONTROLS ---
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            document.getElementById(`nav-${viewId}`).classList.add('active');
+            document.getElementById('view-title').innerText = viewId.toUpperCase();
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        }
+
+        // --- 3. INPUT HANDLING ---
+        document.getElementById('video-input').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            selectedVideoFile = file;
+            document.getElementById('video-details').classList.remove('hidden');
+            document.getElementById('det-name').innerText = file.name;
+
+            // Create local object URL for instant playback
+            if (localVideoObjectUrl) URL.revokeObjectURL(localVideoObjectUrl);
+            localVideoObjectUrl = URL.createObjectURL(file);
+
+            const video = document.createElement('video');
+            video.preload = 'metadata';
+            video.onloadedmetadata = () => {
+                videoDuration = video.duration;
+                document.getElementById('det-dur').innerText = Math.floor(videoDuration / 60) + "m " + Math.floor(videoDuration % 60) + "s";
+            };
+            video.src = localVideoObjectUrl;
+        });
+
+        document.getElementById('ref-input').addEventListener('change', function (e) {
+            const gallery = document.getElementById('ref-gallery');
+            gallery.classList.remove('hidden');
+            gallery.innerHTML = '';
+            selectedRefFiles = Array.from(e.target.files);
+            selectedRefFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    gallery.innerHTML += `<div class="aspect-square rounded-lg border border-slate-800 overflow-hidden shadow-sm bg-slate-850"><img src="${e.target.result}" class="w-full h-full object-cover"></div>`;
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        document.getElementById('threshold').oninput = function () {
+            document.getElementById('thresh-val').innerText = this.value;
+        };
+
+        function setMode(mode, el) {
+            document.getElementById('mode-val').value = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => {
+                b.classList.remove('bg-slate-800', 'text-brand-500', 'shadow-sm');
+            });
+            el.classList.add('bg-slate-800', 'text-brand-500', 'shadow-sm');
+        }
+
+        // --- 4. DATA TRANSMISSION (XHR Progress Logic) ---
+        function startUploadAndProcess() {
+            if (!selectedVideoFile || selectedRefFiles.length === 0) return alert("Select both Source and Targets.");
+
+            document.getElementById('upload-overlay').classList.remove('hidden');
+
+            const fd = new FormData();
+            fd.append('video', selectedVideoFile);
+            selectedRefFiles.forEach(f => fd.append('references', f));
+            fd.append('mode', document.getElementById('mode-val').value);
+            fd.append('threshold', document.getElementById('threshold').value);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", `${API_BASE}/analyze/`, true);
+            xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const pct = (e.loaded / e.total) * 100;
+                    document.getElementById('upload-bar').style.width = pct + "%";
+                    document.getElementById('upload-pct').innerText = pct.toFixed(0) + "% TRANSMITTED";
+                }
+            };
+
+            xhr.onload = () => {
+                document.getElementById('upload-overlay').classList.add('hidden');
+                if (xhr.status === 200) {
+                    const data = JSON.parse(xhr.responseText);
+                    currentCaseId = data.case_id;
+                    document.getElementById('case-id-display').innerText = `CASE_ID: ${currentCaseId.substring(0, 13)}...`;
+                    switchView('live');
+                    startMissionControl();
+                } else {
+                    alert("Upload Error: Check Server Logs");
+                }
+            };
+
+            xhr.onerror = () => {
+                document.getElementById('upload-overlay').classList.add('hidden');
+                alert("Network Fault Detected.");
+            };
+
+            xhr.send(fd);
+        }
+
+        // --- 5. PIPELINE LOGIC ---
+        function startMissionControl() {
+            const startTime = Date.now();
+            pollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`${API_BASE}/status/${currentCaseId}/`);
+                    const data = await res.json();
+
+                    updateNeuralDashboard(data, startTime);
+                    fetchVaultClips();
+
+                    // Store evidence video URL for playback
+                    if (data.evidence_video_url && !evidenceVideoUrl) {
+                        evidenceVideoUrl = data.evidence_video_url;
+                        populateSourceFootage();
+                    }
+
+                    if (data.status === 'COMPLETED') {
+                        clearInterval(pollInterval);
+                        finishMission(data.video_url);
+                    } else if (data.status === 'ERROR') {
+                        clearInterval(pollInterval);
+                        alert("Critical Pipeline Failure.");
+                    }
+                } catch (e) { console.error("Polling...", e); }
+            }, 2000);
+        }
+
+        function updateNeuralDashboard(data, startTime) {
+            // Logs
+            const logBox = document.getElementById('activity-log');
+            if (data.logs.length > 0) {
+                const last = data.logs.slice(-12);
+                logBox.innerHTML = last.map(l => `
+                    <div class="flex gap-3 py-1.5 border-b border-slate-800/50 ${l.message.includes('TARGET') ? 'text-brand-500 font-bold bg-brand-950/20 px-2 rounded' : 'text-slate-500'}">
+                        <span class="font-mono text-[8px] w-12 shrink-0 opacity-40">${l.time}</span>
+                        <span class="leading-tight">${l.message}</span>
+                    </div>
+                `).join('');
+                logBox.scrollTop = logBox.scrollHeight;
+            }
+
+            // Progress Logic
+            const elapsed = (Date.now() - startTime) / 1000;
+            const fps = parseFloat(data.current_fps) || 18;
+            const totalFrames = videoDuration * 30 || 1;
+            const processed = elapsed * fps;
+            let pct = (processed / totalFrames) * 100;
+
+            // FIX: 99% TRANSCODING STATE
+            if (pct > 98 && data.status !== 'COMPLETED') {
+                pct = 99;
+                const msgs = ["FINALIZING VIDEO STREAM", "ENCODING VAULT FILE", "TRANSCODING H.264", "COMPRESSING MASTER"];
+                const msg = msgs[Math.floor(Date.now() / 2500) % msgs.length];
+                document.getElementById('stage-text').innerHTML = `<span class="text-brand-500 animate-pulse font-bold">${msg}...</span>`;
+                document.getElementById('eta-display').innerText = "ESTIMATING: FINALIZING";
+            } else {
+                const stages = ["NEURAL VECTOR MAPPING", "LANDMARK EXTRACTION", "BYTE-TRACK ASSIGNMENT", "TEMPORAL ANALYSIS"];
+                document.getElementById('stage-text').innerText = stages[Math.floor(Date.now() / 4500) % stages.length] + "...";
+
+                if (fps > 0) {
+                    const secLeft = (totalFrames - processed) / fps;
+                    const m = Math.floor(secLeft / 60);
+                    const s = Math.floor(secLeft % 60);
+                    document.getElementById('eta-display').innerText = `ETA: ${m}m ${s}s`;
+                }
+            }
+
+            document.getElementById('main-progress').style.width = pct + '%';
+            document.getElementById('live-pct').innerText = pct.toFixed(0) + '%';
+            document.getElementById('fps-display').innerText = fps.toFixed(1) + " FPS";
+        }
+
+        async function fetchVaultClips() {
+            const res = await fetch(`${API_BASE}/sightings/${currentCaseId}/`);
+            const clips = await res.json();
+            const gallery = document.getElementById('sighting-gallery');
+            if (!clips || clips.length === gallery.children.length) return;
+
+            document.getElementById('metric-hits').innerText = clips.length;
+            if (clips.length > 0) {
+                const topScore = Math.max(...clips.map(c => c.score));
+                document.getElementById('metric-conf').innerText = (topScore * 100).toFixed(0) + "%";
+            }
+
+            gallery.innerHTML = clips.map(c => `
+                <div onclick="playMedia('${c.url}')" class="bg-slate-900 rounded shadow-sm border border-slate-800 overflow-hidden cursor-pointer hover:border-brand-600 group transition-all">
+                    <div class="aspect-video bg-slate-900 flex items-center justify-center relative">
+                        <i class="fa-solid fa-play text-white/30 group-hover:text-white transition-colors"></i>
+                        <div class="absolute bottom-1 right-1 bg-brand-600 text-[8px] px-1 rounded text-white font-bold">${Math.round(c.start)}s</div>
+                    </div>
+                    <div class="p-2 text-[9px] font-bold text-slate-300 text-center uppercase tracking-tighter">ID:${c.track_id} | ${(c.score * 100).toFixed(0)}%</div>
+                </div>
+            `).join('');
+        }
+
+        function finishMission(url) {
+            document.getElementById('main-progress').style.width = '100%';
+            document.getElementById('live-pct').innerText = '100%';
+            document.getElementById('stage-text').innerText = "FORENSIC PROCESS SUCCESSFUL";
+            document.getElementById('eta-display').innerText = "MISSION_COMPLETE";
+
+            document.getElementById('command-deck').classList.add('hidden');
+            const v = document.getElementById('processed-video');
+            v.classList.remove('hidden');
+            v.src = url;
+            v.play();
+
+            const masterGallery = document.getElementById('master-gallery');
+            masterGallery.innerHTML += `
+                <div onclick="playMedia('${url}')" class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center cursor-pointer hover:shadow-md transition-all active:scale-95 group">
+                    <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 bg-brand-950 text-brand-500 rounded flex items-center justify-center transition-colors group-hover:bg-brand-600 group-hover:text-white"><i class="fa-solid fa-file-video"></i></div>
+                        <div><div class="text-[10px] font-bold text-slate-200">CASE_${currentCaseId.substring(0, 8)}</div><div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Master Archive</div></div>
+                    </div>
+                    <i class="fa-solid fa-download text-slate-600 hover:text-brand-600"></i>
+                </div>`;
+
+            // Also ensure source footage card is populated
+            if (evidenceVideoUrl) populateSourceFootage();
+        }
+
+        function populateSourceFootage() {
+            const gallery = document.getElementById('source-gallery');
+            if (!evidenceVideoUrl || gallery.children.length > 0) return;
+            gallery.innerHTML = `
+                <div onclick="playMedia('${evidenceVideoUrl}')" class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center cursor-pointer hover:shadow-md transition-all active:scale-95 group">
+                    <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 bg-slate-850 text-blue-500 rounded flex items-center justify-center transition-colors group-hover:bg-blue-600 group-hover:text-white"><i class="fa-solid fa-film"></i></div>
+                        <div>
+                            <div class="text-[10px] font-bold text-slate-200">CASE_${currentCaseId ? currentCaseId.substring(0, 8) : 'UNKNOWN'}</div>
+                            <div class="text-[9px] text-blue-500 font-bold uppercase tracking-widest">Source Footage (Original Upload)</div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-play text-slate-600 group-hover:text-blue-600 transition-colors"></i>
+                </div>`;
+        }
+
+        function playLocalSource() {
+            if (!localVideoObjectUrl) return alert('No video selected.');
+            playMedia(localVideoObjectUrl);
+        }
+
+        function playMedia(url) {
+            switchView('live');
+            document.getElementById('command-deck').classList.add('hidden');
+            const v = document.getElementById('processed-video');
+            v.classList.remove('hidden');
+            v.src = url;
+            v.play();
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // ===================================================
+        //  LIVE CCTV DASHBOARD — JavaScript
+        // ===================================================
+        let cctvStreams = [];          // [{url, name, location}, ...]
+        let cctvRefFiles = [];         // File[]
+        let cctvSessionRunning = false;
+        let cctvSessionId = null;
+        let cctvPollTimer = null;
+        const cctvMode = () => document.getElementById('cctv-mode-val').value;
+
+        // --- Refs ---
+        document.getElementById('cctv-ref-input').addEventListener('change', function(e) {
+            const gallery = document.getElementById('cctv-ref-gallery');
+            gallery.classList.remove('hidden');
+            gallery.innerHTML = '';
+            cctvRefFiles = Array.from(e.target.files);
+            cctvRefFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    gallery.innerHTML += `<div class="aspect-square rounded-lg border border-slate-800 overflow-hidden shadow-sm bg-slate-850"><img src="${ev.target.result}" class="w-full h-full object-cover"></div>`;
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        document.getElementById('cctv-threshold').oninput = function() {
+            document.getElementById('cctv-thresh-val').innerText = this.value;
+        };
+
+        function cctvSetMode(mode, el) {
+            document.getElementById('cctv-mode-val').value = mode;
+            document.querySelectorAll('.cctv-mode-btn').forEach(b => b.classList.remove('bg-slate-800','text-brand-500','shadow-sm'));
+            el.classList.add('bg-slate-800','text-brand-500','shadow-sm');
+        }
+
+        // --- Stream management ---
+        function cctvAddStream() {
+            const url = document.getElementById('cctv-stream-url').value.trim();
+            const name = document.getElementById('cctv-stream-name').value.trim() || `Camera ${cctvStreams.length + 1}`;
+            const location = document.getElementById('cctv-stream-location').value.trim();
+            if (!url) return alert('Enter a stream URL');
+
+            cctvStreams.push({ url, name, location });
+            document.getElementById('cctv-stream-url').value = '';
+            document.getElementById('cctv-stream-name').value = '';
+            document.getElementById('cctv-stream-location').value = '';
+            cctvRenderStreamList();
+        }
+
+        function cctvRemoveStream(idx) {
+            cctvStreams.splice(idx, 1);
+            cctvRenderStreamList();
+        }
+
+        function cctvRenderStreamList() {
+            const list = document.getElementById('cctv-stream-list');
+            if (cctvStreams.length === 0) { list.innerHTML = ''; return; }
+            list.innerHTML = cctvStreams.map((s, i) => `
+                <div class="flex items-center justify-between bg-slate-850 rounded-lg px-3 py-2 border border-slate-800 group hover:border-brand-600 transition-all">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="h-7 w-7 rounded bg-slate-800 flex items-center justify-center shrink-0"><i class="fa-solid fa-video text-[10px] text-slate-500"></i></div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] font-bold text-slate-200 truncate">${s.name}</p>
+                            <p class="text-[9px] font-mono text-slate-500 truncate">${s.url}</p>
+                        </div>
+                    </div>
+                    <button onclick="cctvRemoveStream(${i})" class="text-slate-600 hover:text-red-500 transition-colors shrink-0 ml-2"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            `).join('');
+        }
+
+        // --- Session Start ---
+        async function cctvStartSession() {
+            if (cctvStreams.length === 0) return alert('Add at least one stream.');
+            if (cctvRefFiles.length === 0) return alert('Upload at least one reference image.');
+
+            const btn = document.getElementById('cctv-start-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> STARTING...';
+
+            const fd = new FormData();
+            cctvRefFiles.forEach(f => fd.append('references', f));
+            cctvStreams.forEach(s => {
+                fd.append('stream_urls', s.url);
+                fd.append('stream_names', s.name);
+            });
+            fd.append('mode', cctvMode());
+            fd.append('threshold', document.getElementById('cctv-threshold').value);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/live/start/`, { method: 'POST', body: fd });
+                const data = await res.json();
+                if (res.ok) {
+                    cctvSessionRunning = true;
+                    cctvSessionId = data.case_id;
+                    cctvUpdateBanner('STARTING', data.case_id);
+                    cctvStartPolling();
+                } else if (res.status === 503) {
+                    // A session is already running — auto-attach to it
+                    const statusRes = await fetch(`${API_BASE}/api/live/status/`);
+                    const statusData = await statusRes.json();
+                    if (statusData.running) {
+                        cctvSessionRunning = true;
+                        cctvSessionId = statusData.session_id;
+                        cctvUpdateBanner(statusData.status, statusData.session_id);
+                        cctvStartPolling();
+                    } else {
+                        alert(data.message || data.error || 'Failed to start session.');
+                    }
+                } else {
+                    alert(data.message || data.error || 'Failed to start session.');
+                }
+            } catch(e) {
+                alert('Network error: ' + e.message);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> START LIVE SESSION';
+        }
+
+        // --- Session Stop ---
+        async function cctvStopSession() {
+            if (!confirm('Stop the live tracking session?')) return;
+            try {
+                await fetch(`${API_BASE}/api/live/stop/`, { method: 'POST' });
+            } catch(e) { /* ignore */ }
+            cctvSessionRunning = false;
+            cctvStopPolling();
+            cctvUpdateBanner('STOPPED', null);
+        }
+
+        // --- Polling ---
+        function cctvStartPolling() {
+            cctvStopPolling();
+            cctvPollTimer = setInterval(cctvPollStatus, 2000);
+            cctvPollStatus();
+        }
+        function cctvStopPolling() {
+            if (cctvPollTimer) { clearInterval(cctvPollTimer); cctvPollTimer = null; }
+        }
+
+        async function cctvPollStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/api/live/status/`);
+                const data = await res.json();
+
+                if (!data.running && data.status === 'NO_SESSION') {
+                    cctvSessionRunning = false;
+                    cctvStopPolling();
+                    cctvUpdateBanner('OFFLINE', null);
+                    return;
+                }
+
+                cctvSessionRunning = data.running;
+                cctvUpdateBanner(data.status, data.session_id, (data.streams || []).length);
+                cctvRenderGrid(data.streams || []);
+                document.getElementById('cctv-alert-count').innerText = `${data.total_alerts || 0} alerts`;
+
+                // Fetch alerts
+                if (data.session_id) {
+                    cctvFetchAlerts(data.session_id);
+                }
+            } catch(e) {
+                console.error('CCTV poll error:', e);
+            }
+        }
+
+        // --- Banner ---
+        function cctvUpdateBanner(status, sessionId, streamCount) {
+            const badge = document.getElementById('cctv-status-badge');
+            const info = document.getElementById('cctv-session-info');
+            const stopBtn = document.getElementById('cctv-stop-btn');
+            const startBtn = document.getElementById('cctv-start-btn');
+            const dot = document.getElementById('cctv-live-dot');
+
+            const statusStyles = {
+                'RUNNING':  { bg: 'bg-emerald-50', text: 'text-emerald-700', label: '● LIVE' },
+                'STARTING': { bg: 'bg-amber-50', text: 'text-amber-700', label: '◌ STARTING' },
+                'STOPPED':  { bg: 'bg-slate-100', text: 'text-slate-500', label: 'STOPPED' },
+                'OFFLINE':  { bg: 'bg-slate-100', text: 'text-slate-500', label: 'OFFLINE' },
+                'ERROR':    { bg: 'bg-red-50', text: 'text-red-700', label: '✕ ERROR' },
+            };
+            const s = statusStyles[status] || statusStyles['OFFLINE'];
+            badge.className = `px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest ${s.bg} ${s.text}`;
+            badge.innerText = s.label;
+
+            if (status === 'RUNNING' || status === 'STARTING') {
+                info.innerText = `Session: ${sessionId ? sessionId.substring(0,8) : '...'} | Mode: ${cctvMode().toUpperCase()} | ${streamCount || cctvStreams.length} stream(s)`;
+                stopBtn.classList.remove('hidden');
+                startBtn.classList.add('hidden');
+                dot.classList.remove('hidden', 'bg-slate-600');
+                dot.classList.add('bg-emerald-500', 'animate-pulse');
+            } else {
+                info.innerText = 'No active session. Configure streams and start tracking below.';
+                stopBtn.classList.add('hidden');
+                startBtn.classList.remove('hidden');
+                dot.classList.add('hidden');
+            }
+        }
+
+        // --- Camera Grid ---
+        function cctvRenderGrid(streams) {
+            const grid = document.getElementById('cctv-camera-grid');
+            document.getElementById('cctv-stream-count').innerText = `${streams.length} streams`;
+            
+            if (streams.length === 0) {
+                grid.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-12 text-slate-300">
+                    <i class="fa-solid fa-spinner animate-spin text-3xl mb-3"></i>
+                    <p class="text-xs font-bold uppercase tracking-wider">Connecting Streams...</p>
+                </div>`;
+                return;
+            }
+
+            // Remove loading spinner if present
+            if (grid.querySelector('.fa-spinner') && !grid.querySelector('.bg-slate-950')) {
+                grid.innerHTML = '';
+            }
+
+            streams.forEach(s => {
+                const cardId = `card-${s.stream_id}`;
+                let card = document.getElementById(cardId);
+                
+                const capStatus = (s.capture_health && s.capture_health.status) || s.status || '';
+                const isConnected = capStatus === 'CONNECTED' || capStatus === 'connected';
+                const fps = (s.fps_processing || s.fps || 0).toFixed(1);
+                const frames = s.frames_processed || 0;
+                const inferences = s.inferences_run || s.inference_count || 0;
+                const alerts = s.alerts || 0;
+                const lastErr = s.last_error || '';
+                const mjpegSrc = `${API_BASE}/api/live/mjpeg/${s.stream_id}/`;
+
+                if (!card) {
+                    const cardHtml = `
+                    <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden" id="${cardId}">
+                        <div class="h-8 bg-slate-900 flex items-center justify-between px-3">
+                            <div class="flex items-center gap-2">
+                                <div class="status-dot h-2 w-2 rounded-full"></div>
+                                <span class="text-[10px] font-bold text-white uppercase tracking-wider truncate max-w-[120px]">${s.stream_name || s.stream_id}</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="fps-text text-[9px] font-mono text-slate-500">0.0 FPS</span>
+                                <button onclick="cctvFullscreen('${cardId}')" class="text-slate-500 hover:text-white transition-colors">
+                                    <i class="fa-solid fa-expand text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="video-container relative bg-black overflow-hidden" style="aspect-ratio:16/9;">
+                        </div>
+                        <div class="grid grid-cols-3 gap-[1px] bg-slate-800">
+                            <div class="bg-slate-950 p-2 text-center">
+                                <p class="text-[8px] text-slate-600 font-bold uppercase">Frames</p>
+                                <p class="frames-text text-xs font-mono font-bold text-white">0</p>
+                            </div>
+                            <div class="bg-slate-950 p-2 text-center">
+                                <p class="text-[8px] text-slate-600 font-bold uppercase">Infer</p>
+                                <p class="infer-text text-xs font-mono font-bold text-emerald-500">0</p>
+                            </div>
+                            <div class="bg-slate-950 p-2 text-center">
+                                <p class="text-[8px] text-slate-600 font-bold uppercase">Alerts</p>
+                                <p class="alerts-text text-xs font-mono font-bold text-slate-600">0</p>
+                            </div>
+                        </div>
+                        <div class="error-container"></div>
+                    </div>`;
+                    grid.insertAdjacentHTML('beforeend', cardHtml);
+                    card = document.getElementById(cardId);
+                }
+
+                // Update dynamic parts surgically
+                const statusDot = card.querySelector('.status-dot');
+                statusDot.className = `status-dot h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400 animate-pulse'}`;
+                
+                card.querySelector('.fps-text').innerText = `${fps} FPS`;
+                card.querySelector('.frames-text').innerText = frames;
+                card.querySelector('.infer-text').innerText = inferences;
+                
+                const alertEl = card.querySelector('.alerts-text');
+                alertEl.innerText = alerts;
+                alertEl.className = `alerts-text text-xs font-mono font-bold ${alerts > 0 ? 'text-brand-500' : 'text-slate-600'}`;
+
+                const errContainer = card.querySelector('.error-container');
+                if (lastErr) {
+                    errContainer.innerHTML = `<div class="px-3 py-1 bg-red-950/50 border-t border-red-900/30"><p class="text-[9px] text-red-400 font-mono truncate">${lastErr}</p></div>`;
+                } else {
+                    errContainer.innerHTML = '';
+                }
+
+                const videoCont = card.querySelector('.video-container');
+                if (isConnected && !videoCont.querySelector('img')) {
+                    videoCont.innerHTML = `
+                        <img
+                            src="${mjpegSrc}"
+                            class="w-full h-full object-contain"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+                            style="display:block;"
+                        />
+                        <div class="absolute inset-0 hidden flex-col items-center justify-center text-slate-600">
+                            <i class="fa-solid fa-link-slash text-2xl mb-1"></i>
+                            <p class="text-[9px] font-mono">FEED UNAVAILABLE</p>
+                        </div>`;
+                } else if (!isConnected && !videoCont.querySelector('.fa-spinner')) {
+                     videoCont.innerHTML = `
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-700">
+                            <i class="fa-solid fa-spinner animate-spin text-2xl mb-1"></i>
+                            <p class="text-[9px] font-mono">CONNECTING...</p>
+                        </div>`;
+                }
+            });
+
+            const currentIds = new Set(streams.map(s => `card-${s.stream_id}`));
+            grid.querySelectorAll('.bg-slate-950').forEach(c => {
+                if (c.id && !currentIds.has(c.id)) c.remove();
+            });
+        }
+
+        // --- Alert Feed ---
+        async function cctvFetchAlerts(sessionId) {
+            try {
+                const res = await fetch(`${API_BASE}/api/live/alerts/${sessionId}/`);
+                const data = await res.json();
+                const feed = document.getElementById('cctv-alert-feed');
+                if (!data.alerts || data.alerts.length === 0) return;
+
+                document.getElementById('cctv-alert-count').innerText = `${data.total} alerts`;
+
+                feed.innerHTML = data.alerts.map(a => `
+                    <div class="flex items-start gap-3 bg-brand-950/40 border border-brand-900 rounded-lg px-4 py-3 hover:bg-brand-900/40 transition-all">
+                        <div class="h-9 w-9 rounded-lg bg-brand-900/60 flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fa-solid fa-triangle-exclamation text-brand-500 text-sm"></i>
+                        </div>
+                        <div class="min-w-0 flex-grow">
+                            <div class="flex items-center justify-between">
+                                <p class="text-[11px] font-bold text-slate-200">${a.stream} <span class="text-brand-500">${(a.confidence * 100).toFixed(0)}% match</span></p>
+                                <span class="text-[9px] font-mono text-slate-500">${new Date(a.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Frame #${a.frame_number}</p>
+                            <div class="flex gap-2 mt-1.5">
+                                ${a.thumbnail_url ? `<a href="${a.thumbnail_url}" target="_blank" class="text-[9px] font-bold text-blue-400 hover:underline"><i class="fa-solid fa-image mr-0.5"></i>Thumbnail</a>` : ''}
+                                ${a.clip_url ? `<a href="${a.clip_url}" target="_blank" class="text-[9px] font-bold text-emerald-400 hover:underline"><i class="fa-solid fa-film mr-0.5"></i>Evidence Clip</a>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) {
+                console.error('Alert fetch error:', e);
+            }
+        }
+
+        // --- Auto-check on page load if a session is already running ---
+        (async function cctvAutoCheck() {
+            try {
+                const res = await fetch(`${API_BASE}/api/live/status/`);
+                const data = await res.json();
+                if (data.running) {
+                    cctvSessionRunning = true;
+                    cctvSessionId = data.session_id;
+                    cctvUpdateBanner(data.status, data.session_id);
+                    cctvStartPolling();
+                }
+            } catch(e) { /* server not running yet, ignore */ }
+        })();
+
+        function cctvFullscreen(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                if (el.requestFullscreen) {
+                    el.requestFullscreen();
+                } else if (el.webkitRequestFullscreen) {
+                    el.webkitRequestFullscreen();
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

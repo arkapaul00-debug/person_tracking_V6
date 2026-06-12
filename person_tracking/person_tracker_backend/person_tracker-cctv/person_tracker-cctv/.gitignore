@@ -1,0 +1,52 @@
+# --- 1. Environments ---
+venv/
+.venv/
+env/
+myenv/
+lib/
+bin/
+include/
+pyvenv.cfg
+=8.3.0
+
+# --- 2. AI Weights & Models ---
+weights/
+**/weights/
+*.pt
+*.onnx
+*.pth
+*.weights
+*.engine
+
+# --- 3. Forensic Evidence & Data ---
+data/
+media/
+backend/media/
+**/outputs/clips/
+*.csv
+*.mp4
+*.jpeg
+*.jpg
+
+# --- 4. Python & System Junk ---
+**/__pycache__/
+*.py[cod]
+*.so
+.Python
+.DS_Store
+Thumbs.db
+
+# --- 5. Django Framework ---
+db.sqlite3
+db.sqlite3-journal
+backend/staticfiles/
+*.log
+
+# --- 6. IDEs & Development ---
+.vscode/
+.idea/
+notebooks/
+configs/
+core/
+models/
+antelopev2.zip

@@ -1,0 +1,30 @@
+# SENTINEL PRO V4 - Edge Deployment Blueprint (Phase 83)
+# Designed for stream ingestion and initial processing at the physical site.
+version: '3.8'
+
+services:
+  stream-ingestor:
+    image: sentinel-pro/edge-ingestor:v4
+    restart: always
+    environment:
+      - NODE_ROLE=EDGE
+      - CENTRAL_HOST=wss://central.sentinel.local
+      - EDGE_API_KEY=${EDGE_API_KEY}
+    volumes:
+      - /opt/sentinel/streams:/app/streams
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  local-alerting:
+    image: sentinel-pro/alerting:v4
+    restart: always
+    environment:
+      - NODE_ROLE=EDGE
+      - CENTRAL_HOST=wss://central.sentinel.local
+    ports:
+      - "8080:8080" # Local operator dashboard

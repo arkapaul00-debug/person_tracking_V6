@@ -1,0 +1,48 @@
+# --- Environments & Infrastructure ---
+venv/
+.venv/
+bin/
+lib/
+lib64/
+include/
+share/
+pyvenv.cfg
+=8.3.0
+
+# --- Large AI Models & Weights (Root and Nested) ---
+weights/
+**/weights/
+*.pt
+*.onnx
+*.pth
+*.engine
+
+# --- Forensic Data & User Uploads ---
+data/
+media/
+backend/media/
+backend/forensics/ai_core/outputs/
+*.csv
+
+# --- Python Junk ---
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# --- Django Specific ---
+db.sqlite3
+db.sqlite3-journal
+backend/staticfiles/
+*.log
+
+# --- IDEs & OS Files ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Root duplicates (based on your screenshot) ---
+# If your real code is in /backend, ignore the root duplicates
+/db.sqlite3
+/manage.py
