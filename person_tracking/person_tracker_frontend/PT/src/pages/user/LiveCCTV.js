@@ -638,16 +638,43 @@ const LiveCCTV = {
     /* ==========================================================
        ACTIONS — Live Session Control
        ========================================================== */
-    startSession() {
+    async startSession() {
         const streams = SentinelStore.getStreams();
         if (streams.length === 0) {
             SentinelToast.error('No Streams', 'Please add at least one CCTV stream before starting.');
             return;
         }
 
-        // Save target name
         const nameInput = document.getElementById('target-name');
         if (nameInput) this._targetName = nameInput.value.trim();
+
+        // Send API request to backend to actually start tracking
+        const formData = new FormData();
+        formData.append('mode', 'hybrid');
+        streams.forEach(s => {
+            formData.append('stream_ids', s.id);
+            formData.append('stream_urls', s.rtsp_url);
+            formData.append('stream_names', s.name);
+        });
+        
+        if (this._targetImages) {
+            this._targetImages.forEach(img => {
+                if (img.file) formData.append('references', img.file);
+            });
+        }
+
+        try {
+            const res = await SentinelAPI.startLiveTracking(formData);
+            if (res.error) {
+                SentinelToast.error('Session Error', res.message || 'Failed to start session on backend.');
+                return;
+            }
+            console.log('[Sentinel] Live session started on backend:', res);
+        } catch (e) {
+            SentinelToast.error('API Error', 'Failed to communicate with backend.');
+            console.error(e);
+            return;
+        }
 
         this._isLive = true;
         this._fullscreenActive = true;

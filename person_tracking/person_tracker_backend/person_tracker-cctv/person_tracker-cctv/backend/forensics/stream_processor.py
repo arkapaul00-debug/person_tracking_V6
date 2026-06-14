@@ -57,7 +57,7 @@ class StreamProcessor:
                 'detection_router', 'tracker_orchestrator', 'face_pipeline',
                 'fusion_engine', 'lowlight_enhancer', 'evidence_mgr', 'metrics'
         """
-        from boxmot import ByteTrack
+        from boxmot import BYTETracker
         from .adaptive_stride import AdaptiveStrideFSM
         from .forensic_identity import ForensicIdentityManager
         from .model_pool import ModelPool
@@ -84,7 +84,7 @@ class StreamProcessor:
         ])
 
         # Per-stream lightweight state (CPU only)
-        self.tracker = ByteTrack(track_thresh=0.3, track_buffer=100, frame_rate=30)
+        self.tracker = BYTETracker(track_thresh=0.3, track_buffer=100, frame_rate=30)
         self.identity_mgr = ForensicIdentityManager(
             high_thresh=threshold,
             low_thresh=max(0.45, threshold - 0.15),
@@ -273,7 +273,7 @@ class StreamProcessor:
                 # Periodic GPU cleanup
                 if self.frame_counter % 1000 == 0:
                     import torch
-                    torch.cuda.empty_cache()
+                    if torch.cuda.is_available(): torch.cuda.empty_cache()
                     logger.info(
                         f"[{self.stream_id}] Frames:{self.frame_counter} "
                         f"Inferences:{self.inference_count} "

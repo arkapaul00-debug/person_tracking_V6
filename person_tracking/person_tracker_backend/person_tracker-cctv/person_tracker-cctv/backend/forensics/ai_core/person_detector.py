@@ -86,7 +86,8 @@ class PersonDetector:
 
         except torch.cuda.OutOfMemoryError:
             logger.warning("GPU OOM during detection. Clearing cache and skipping frame.")
-            torch.cuda.empty_cache()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
             return []
         except Exception as e:
             logger.error(f"Detection error: {e}")

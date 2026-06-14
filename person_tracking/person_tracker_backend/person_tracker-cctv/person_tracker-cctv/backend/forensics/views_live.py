@@ -92,11 +92,18 @@ class LiveStartView(APIView):
 
         ref_files = request.FILES.getlist('references')
         stream_ids = request.data.getlist('stream_ids')
+        if not stream_ids and request.data.get('stream_id'):
+            stream_ids = [request.data.get('stream_id')]
+            
         # Also support inline stream URLs
         stream_urls = request.data.getlist('stream_urls')
+        if not stream_urls and request.data.get('stream_url'):
+            stream_urls = [request.data.get('stream_url')]
+            
         stream_names = request.data.getlist('stream_names')
 
         if not stream_ids and not stream_urls:
+            logger.error(f"Bad Request: missing streams. Data={request.data}")
             return Response({
                 'error': 'Incomplete',
                 'message': 'At least one stream_id or stream_url is required.'
@@ -146,6 +153,7 @@ class LiveStartView(APIView):
             })
 
         if not stream_configs:
+            logger.error(f"Bad Request: No valid streams found. IDs provided: {stream_ids}, URLs provided: {stream_urls}")
             return Response({
                 'error': 'No valid streams',
                 'message': 'None of the specified streams could be found or are active.'
