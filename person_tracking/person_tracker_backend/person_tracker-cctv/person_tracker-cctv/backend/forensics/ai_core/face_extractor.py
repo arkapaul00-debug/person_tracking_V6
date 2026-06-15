@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class FaceReIDExtractor:
     """
-    AntelopeV2 Face Extractor for RTX A5000.
+    Buffalo_L Face Extractor for RTX A5000.
     Optimized for CCTV: Low thresholds, Synthetic Augmentation, and Blind Upscaling.
     """
     def __init__(self, device: str = 'cuda:0'):
@@ -19,27 +19,26 @@ class FaceReIDExtractor:
         # 1. Setup Paths
         base_path = Path(__file__).resolve().parent
         model_root = str(base_path / 'weights')
-        model_subfolder = base_path / 'weights' / 'models' / 'antelopev2'
+        model_subfolder = base_path / 'weights' / 'models' / 'buffalo_l'
         
         if not model_subfolder.exists():
-            logger.critical(f"AntelopeV2 folder missing at: {model_subfolder}")
-            raise RuntimeError(f"Directory not found: {model_subfolder}")
+            logger.warning(f"buffalo_l folder missing at: {model_subfolder}. InsightFace will attempt to use default path or download it.")
 
-        logger.info(f"Initializing FaceReID (AntelopeV2) on GPU: {device}...")
+        logger.info(f"Initializing FaceReID (buffalo_l) on GPU: {device}...")
         
         try:
             self.app = FaceAnalysis(
-                name='antelopev2', 
-                root=model_root, 
+                name='buffalo_l', 
                 providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
             )
-            self.app.prepare(ctx_id=0 if 'cuda' in device else -1, det_size=(640, 640))
+            # Reverted to (1024, 1024) - proven to work without crashing the detector.
+            self.app.prepare(ctx_id=0 if 'cuda' in device else -1, det_size=(1024, 1024))
             
             # --- AGGRESSIVE FIX 1: LOWER DETECTION THRESHOLD ---
-            # Default is usually 0.5. We drop to 0.25 to catch blurry/dark faces.
+            # Default is usually 0.5. We drop to 0.15 to catch heavily occluded faces (masks/sunglasses/burkha).
             if hasattr(self.app, 'det_model'):
-                self.app.det_model.score_thresh = 0.25
-                logger.info("Forensic Mode: Detection threshold lowered to 0.25")
+                self.app.det_model.score_thresh = 0.15
+                logger.info("Forensic Mode: Detection threshold lowered to 0.15 for strict occlusion handling")
                 
         except Exception as e:
             logger.critical(f"Failed to load InsightFace: {e}")
@@ -178,6 +177,38 @@ class FaceReIDExtractor:
             motion_kernel[7, :] = 1.0 / 15.0
             motion_blur = cv2.filter2D(image, -1, motion_kernel)
             augments.append(motion_blur)
+            
+            # --- OCCLUSION SIMULATIONS ---
+            
+            # 8. Sunglasses (black out top 40% of face, leaving forehead)
+            sunglasses = image.copy()
+            eye_y1 = int(h * 0.2)
+            eye_y2 = int(h * 0.55)
+            cv2.rectangle(sunglasses, (0, eye_y1), (w, eye_y2), (0, 0, 0), -1)
+            augments.append(sunglasses)
+            
+            # 9. Face Mask (black out bottom 55% of face)
+            mask = image.copy()
+            mask_y = int(h * 0.45)
+            cv2.rectangle(mask, (0, mask_y), (w, h), (0, 0, 0), -1)
+            augments.append(mask)
+            
+            # 10. Burkha / Niqab (black out everything except a narrow eye slit)
+            burkha = image.copy()
+            slit_y1 = int(h * 0.25)
+            slit_y2 = int(h * 0.45)
+            cv2.rectangle(burkha, (0, 0), (w, slit_y1), (0, 0, 0), -1) # Forehead
+            cv2.rectangle(burkha, (0, slit_y2), (w, h), (0, 0, 0), -1) # Nose and below
+            augments.append(burkha)
+            
+            # 11. Synthetic Side Profile (Horizontal Squeeze)
+            # Fools the CNN into thinking the face is turned sideways by halving width
+            squeeze = cv2.resize(image, (max(1, int(w * 0.6)), h))
+            pad_left = int(w * 0.2)
+            pad_right = w - int(w * 0.6) - pad_left
+            if pad_left >= 0 and pad_right >= 0:
+                side_sim = cv2.copyMakeBorder(squeeze, 0, 0, pad_left, pad_right, cv2.BORDER_CONSTANT, value=(0,0,0))
+                augments.append(side_sim)
 
         except Exception as e:
             logger.warning(f"Augmentation skipped: {e}")

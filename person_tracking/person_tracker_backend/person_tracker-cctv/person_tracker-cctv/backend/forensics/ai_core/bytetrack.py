@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 from typing import List, Dict, Any
-from boxmot import ByteTrack  # Standard industry implementation of ByteTrack
+from boxmot import BYTETracker  # Standard industry implementation of ByteTrack
 
 # Configure Logger
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class ByteTracker:
         
         # Initialize BoxMOT's ByteTrack implementation
         # per_class=False ensures ID uniqueness across classes (though we only have 'person')
-        self.tracker = ByteTrack(
+        self.tracker = BYTETracker(
             track_thresh=track_thresh,
             track_buffer=track_buffer,
             match_thresh=0.8,

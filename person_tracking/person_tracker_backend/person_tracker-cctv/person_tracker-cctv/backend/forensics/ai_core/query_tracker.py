@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 # Imports
 from ultralytics import YOLO
-from boxmot import ByteTrack
+from boxmot import BYTETracker
 
 # Relative Imports for Django
 from .face_extractor import FaceReIDExtractor
@@ -88,7 +88,7 @@ class UnifiedQueryTracker:
         else:
             logger.info(f"Loading PyTorch Model: {yolo_pt}")
             self.detector = YOLO(str(yolo_pt))
-        self.tracker = ByteTrack(track_thresh=0.3, track_buffer=100, frame_rate=30)
+        self.tracker = BYTETracker(track_thresh=0.3, track_buffer=100, frame_rate=30)
         
         # 2. Load Feature Extractors
         self.face_model = None

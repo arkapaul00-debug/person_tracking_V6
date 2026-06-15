@@ -43,15 +43,17 @@ class ModelPool:
     def __init__(self, mode: str = 'hybrid', device: str = 'cuda:0'):
         """Do NOT call directly. Use ModelPool.get_instance()."""
         self.mode = mode
-        self.device = device
-
-        # --- V2: Per-model CUDA streams (replace global _inference_lock) ---
-        # Each model type gets its own CUDA stream + lightweight lock.
-        # Detection, face, and body can execute CONCURRENTLY on the GPU.
-        # The lock only protects model state mutation, NOT GPU execution.
-        self._detection_stream = torch.cuda.Stream(device=device)
-        self._face_stream = torch.cuda.Stream(device=device)
-        self._body_stream = torch.cuda.Stream(device=device)
+        if device.startswith('cuda') and torch.cuda.is_available():
+            self.device = device
+            self._detection_stream = torch.cuda.Stream(device=self.device)
+            self._face_stream = torch.cuda.Stream(device=self.device)
+            self._body_stream = torch.cuda.Stream(device=self.device)
+        else:
+            self.device = 'cpu'
+            self._detection_stream = None
+            self._face_stream = None
+            self._body_stream = None
+            
         self._detection_lock = threading.Lock()
         self._face_lock = threading.Lock()
         self._body_lock = threading.Lock()
@@ -155,9 +157,12 @@ class ModelPool:
                 if img is None:
                     continue
                 with self._detection_lock:
-                    with torch.cuda.stream(self._detection_stream):
+                    if self._detection_stream:
+                        with torch.cuda.stream(self._detection_stream):
+                            results = self.detector(img, conf=0.4, classes=[0], verbose=False)
+                        self._detection_stream.synchronize()
+                    else:
                         results = self.detector(img, conf=0.4, classes=[0], verbose=False)
-                    self._detection_stream.synchronize()
                 if results[0].boxes:
                     boxes = results[0].boxes.xyxy.cpu().numpy()
                     best_box = max(boxes, key=lambda b: (b[2] - b[0]) * (b[3] - b[1]))
@@ -181,9 +186,12 @@ class ModelPool:
         Thread-safe via dedicated detection CUDA stream.
         """
         with self._detection_lock:
-            with torch.cuda.stream(self._detection_stream):
+            if self._detection_stream:
+                with torch.cuda.stream(self._detection_stream):
+                    results = self.detector(frame, conf=conf, classes=[0], verbose=False)
+                self._detection_stream.synchronize()
+            else:
                 results = self.detector(frame, conf=conf, classes=[0], verbose=False)
-            self._detection_stream.synchronize()
         return results
 
     def detect_persons_batch(self, frames: List[np.ndarray], conf: float = 0.3) -> list:
@@ -201,9 +209,12 @@ class ModelPool:
         if not frames:
             return []
         with self._detection_lock:
-            with torch.cuda.stream(self._detection_stream):
+            if self._detection_stream:
+                with torch.cuda.stream(self._detection_stream):
+                    results = self.detector(frames, conf=conf, classes=[0], verbose=False)
+                self._detection_stream.synchronize()
+            else:
                 results = self.detector(frames, conf=conf, classes=[0], verbose=False)
-            self._detection_stream.synchronize()
         return results
 
     def extract_faces_from_frame(self, frame: np.ndarray) -> List[Dict]:
@@ -215,9 +226,12 @@ class ModelPool:
         if not self.face_model:
             return []
         with self._face_lock:
-            with torch.cuda.stream(self._face_stream):
+            if self._face_stream:
+                with torch.cuda.stream(self._face_stream):
+                    result = self.face_model.extract_all_face_embeddings(frame)
+                self._face_stream.synchronize()
+            else:
                 result = self.face_model.extract_all_face_embeddings(frame)
-            self._face_stream.synchronize()
         return result
 
     def extract_body_embedding(self, crop: np.ndarray) -> Optional[np.ndarray]:
@@ -225,9 +239,12 @@ class ModelPool:
         if not self.body_model:
             return None
         with self._body_lock:
-            with torch.cuda.stream(self._body_stream):
+            if self._body_stream:
+                with torch.cuda.stream(self._body_stream):
+                    result = self.body_model.extract_body_embedding(crop)
+                self._body_stream.synchronize()
+            else:
                 result = self.body_model.extract_body_embedding(crop)
-            self._body_stream.synchronize()
         return result
 
     def extract_body_embeddings_batch(self, crops: List[np.ndarray]) -> List[Optional[np.ndarray]]:
@@ -239,9 +256,12 @@ class ModelPool:
         if not self.body_model:
             return [None] * len(crops)
         with self._body_lock:
-            with torch.cuda.stream(self._body_stream):
+            if self._body_stream:
+                with torch.cuda.stream(self._body_stream):
+                    results = self.body_model.extract_body_embeddings_batch(crops)
+                self._body_stream.synchronize()
+            else:
                 results = self.body_model.extract_body_embeddings_batch(crops)
-            self._body_stream.synchronize()
         return results
 
     def compute_face_similarity(self, face_embedding) -> float:

@@ -89,20 +89,26 @@ class ForensicIdentity:
         if len(self.embedding_cluster) > self.max_cluster_size:
             self.embedding_cluster.pop(0)
     
-    def get_mean_embedding(self) -> np.ndarray:
-        """Get the cluster centroid for drift detection."""
-        return np.mean(self.embedding_cluster, axis=0)
-    
     def embedding_similarity(self, new_embedding: np.ndarray) -> float:
-        """Check if a new embedding matches this identity's cluster."""
-        centroid = np.asarray(self.get_mean_embedding()).reshape(-1)
-        v = np.asarray(new_embedding).reshape(-1)
-        
-        norm_c = np.linalg.norm(centroid)
-        norm_v = np.linalg.norm(v)
-        if norm_c < 1e-6 or norm_v < 1e-6:
+        """Check if a new embedding matches any of this identity's cluster faces."""
+        if not self.embedding_cluster:
             return 0.0
-        return float(np.dot(centroid, v) / (norm_c * norm_v))
+            
+        v = np.asarray(new_embedding).reshape(-1)
+        norm_v = np.linalg.norm(v)
+        if norm_v < 1e-6:
+            return 0.0
+            
+        max_sim = 0.0
+        for emb in self.embedding_cluster:
+            c = np.asarray(emb).reshape(-1)
+            norm_c = np.linalg.norm(c)
+            if norm_c > 1e-6:
+                sim = float(np.dot(c, v) / (norm_c * norm_v))
+                if sim > max_sim:
+                    max_sim = sim
+                    
+        return max_sim
 
 
 class ForensicIdentityManager:
@@ -126,11 +132,11 @@ class ForensicIdentityManager:
     """
     
     def __init__(self,
-                 high_thresh: float = 0.75,
-                 low_thresh: float = 0.55,
+                 high_thresh: float = 0.48,
+                 low_thresh: float = 0.35,
                  decay_alpha: float = 0.97,       # Per-frame confidence decay
-                 reverify_thresh: float = 0.55,    # Below this → force re-verify
-                 drift_thresh: float = 0.50,       # Embedding drift → force re-verify
+                 reverify_thresh: float = 0.45,    # Below this → force re-verify
+                 drift_thresh: float = 0.35,       # Embedding drift → force re-verify
                  max_missing_frames: int = 30):     # Frames before track considered gone
         
         self.high_thresh = high_thresh
@@ -220,8 +226,9 @@ class ForensicIdentityManager:
             # Check for ID switch via embedding drift
             if embedding is not None and identity.confirmed:
                 cluster_sim = identity.embedding_similarity(embedding)
-                if cluster_sim < self.drift_thresh:
-                    # Embedding doesn't match cluster → likely ID switch!
+                # Only unconfirm if it's wildly different (sim < 0.10) AND gallery similarity is also low
+                if cluster_sim < 0.10 and similarity < self.low_thresh:
+                    # Embedding doesn't match cluster AND doesn't match gallery → likely ID switch!
                     logger.warning(f"Track {track_id}: Embedding drift detected (sim={cluster_sim:.3f}). "
                                    f"Unconfirming forensic ID {identity.forensic_id}.")
                     identity.confirmed = False

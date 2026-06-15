@@ -195,8 +195,8 @@ class TrackerOrchestrator:
             self.vram_manager = None
 
         # --- Primary: ByteTrack (always loaded) ---
-        from boxmot import ByteTrack
-        self._bytetrack = ByteTrack(
+        from boxmot import BYTETracker
+        self._bytetrack = BYTETracker(
             track_thresh=track_thresh,
             track_buffer=track_buffer,
             match_thresh=0.8,
@@ -233,9 +233,14 @@ class TrackerOrchestrator:
             return
 
         try:
-            from boxmot import BoTrack
-            self._botsort = BoTrack(
-                track_thresh=self.track_thresh,
+            from boxmot import BoTSORT
+            import torch
+            from pathlib import Path
+            self._botsort = BoTSORT(
+                model_weights=Path('osnet_x0_25_msmt17.pt'),
+                device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
+                fp16=False,
+                track_high_thresh=self.track_thresh,
                 track_buffer=self.track_buffer,
                 match_thresh=0.8,
                 frame_rate=self.frame_rate,
@@ -255,11 +260,13 @@ class TrackerOrchestrator:
 
         try:
             from boxmot import StrongSORT
+            import torch
+            from pathlib import Path
             self._strongsort = StrongSORT(
-                track_thresh=self.track_thresh,
-                track_buffer=self.track_buffer * 3,  # Longer buffer for forensic
-                match_thresh=0.7,
-                frame_rate=self.frame_rate,
+                model_weights=Path('osnet_x0_25_msmt17.pt'),
+                device=torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
+                fp16=False,
+                max_age=self.track_buffer * 3,  # Longer buffer for forensic
             )
             logger.info("StrongSORT loaded (forensic-grade tracker)")
         except ImportError:

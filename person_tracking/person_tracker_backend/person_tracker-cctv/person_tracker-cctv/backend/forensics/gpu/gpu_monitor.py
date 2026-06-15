@@ -25,7 +25,7 @@ def _init_nvml():
         return _pynvml is not None
 
     try:
-        import pynvml
+        import pynvml  # type: ignore
         pynvml.nvmlInit()
         _pynvml = pynvml
         _nvml_initialized = True
@@ -214,7 +214,7 @@ class GPUMonitor:
             mem_reserved = torch.cuda.memory_reserved(device_id) / (1024 * 1024)
 
             props = torch.cuda.get_device_properties(device_id)
-            info.vram_total_mb = props.total_mem / (1024 * 1024)
+            info.vram_total_mb = props.total_memory / (1024 * 1024)
             info.vram_used_mb = mem_allocated
             info.vram_free_mb = info.vram_total_mb - mem_reserved
             info.vram_utilization = mem_reserved / max(info.vram_total_mb, 1)
