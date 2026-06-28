@@ -1,6 +1,7 @@
 // src/utils/auth.ts
 import type { AuthUser, LoginCredentials, RegisterRequest } from './types';
 import { useSentinelStore } from './store';
+import { redirect } from 'react-router-dom';
 
 const AUTH_ENDPOINT = import.meta.env.VITE_AUTH_ENDPOINT;
 
@@ -60,24 +61,18 @@ export async function refreshToken(): Promise<boolean> {
   }
 }
 
-export function requireAuth(): Response | null {
+export function requireAuth() {
   const { user } = useSentinelStore.getState();
   if (!user || Date.now() > user.expiresAt) {
-    return new Response(null, {
-      status: 302,
-      headers: { Location: '/login' },
-    });
+    return redirect('/login');
   }
   return null;
 }
 
-export function requireAdmin(): Response | null {
+export function requireAdmin() {
   const { adminAuthenticated } = useSentinelStore.getState();
   if (!adminAuthenticated) {
-    return new Response(null, {
-      status: 302,
-      headers: { Location: '/admin/login' },
-    });
+    return redirect('/admin/login');
   }
   return null;
 }
