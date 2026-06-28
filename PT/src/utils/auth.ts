@@ -72,11 +72,11 @@ export function requireAuth(): Response | null {
 }
 
 export function requireAdmin(): Response | null {
-  const { user } = useSentinelStore.getState();
-  if (!user || user.role !== 'admin') {
+  const { adminAuthenticated } = useSentinelStore.getState();
+  if (!adminAuthenticated) {
     return new Response(null, {
       status: 302,
-      headers: { Location: '/monitoring' },
+      headers: { Location: '/admin/login' },
     });
   }
   return null;

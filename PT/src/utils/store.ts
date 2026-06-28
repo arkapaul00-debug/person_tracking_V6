@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import type {
   AuthUser, User, Camera, TargetPerson, DetectionEvent,
-  ActiveTracking, SystemStatus, MonitoringMode,
+  ActiveTracking, SystemStatus, MonitoringMode, ManagedUser
 } from './types';
 
 interface SentinelStore {
@@ -13,6 +13,13 @@ interface SentinelStore {
   // Users (admin view)
   allUsers: User[];
   setAllUsers: (users: User[]) => void;
+  adminAuthenticated: boolean;
+  setAdminAuthenticated: (val: boolean) => void;
+  managedUsers: ManagedUser[];
+  setManagedUsers: (users: ManagedUser[]) => void;
+  addManagedUser: (user: ManagedUser) => void;
+  updateManagedUser: (id: string, patch: Partial<ManagedUser>) => void;
+  deleteManagedUser: (id: string) => void;
 
   // Cameras
   cameras: Camera[];
@@ -59,6 +66,22 @@ export const useSentinelStore = create<SentinelStore>((set) => ({
   // ── Users ─────────────────────────────────────────────────
   allUsers: [],
   setAllUsers: (allUsers) => set({ allUsers }),
+  adminAuthenticated: false,
+  setAdminAuthenticated: (adminAuthenticated) => set({ adminAuthenticated }),
+  managedUsers: [],
+  setManagedUsers: (managedUsers) => set({ managedUsers }),
+  addManagedUser: (user) =>
+    set((s) => ({ managedUsers: [...s.managedUsers, user] })),
+  updateManagedUser: (id, patch) =>
+    set((s) => ({
+      managedUsers: s.managedUsers.map((u) =>
+        u.id === id ? { ...u, ...patch } : u
+      ),
+    })),
+  deleteManagedUser: (id) =>
+    set((s) => ({
+      managedUsers: s.managedUsers.filter((u) => u.id !== id),
+    })),
 
   // ── Cameras ───────────────────────────────────────────────
   cameras: [],

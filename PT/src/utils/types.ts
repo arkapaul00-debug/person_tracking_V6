@@ -144,3 +144,48 @@ export interface SystemSettings {
   sessionTimeoutMinutes: number;
   maxFailedLoginAttempts: number;
 }
+
+// ── Admin ─────────────────────────────────────────────────────
+
+export interface AdminCredentials {
+  username: 'ADMIN';
+  password: string;
+}
+
+export interface ManagedUser {
+  id: string;
+  name: string;
+  designation: string;
+  phone: string;
+  email: string;
+  username: string;
+  passwordHash: string;        // stored hashed, never plain text
+  status: 'active' | 'suspended';
+  createdAt: number;
+  lastLoginAt: number | null;
+  loginCount: number;
+  lastActiveRoute: string | null;
+}
+
+export interface UserAnalytics {
+  userId: string;
+  username: string;
+  name: string;
+  designation: string;
+  loginCount: number;
+  lastLoginAt: number | null;
+  lastActiveRoute: string | null;
+  status: 'active' | 'suspended';
+  camerasAccessed: number;
+  alertsTriggered: number;
+  sessionsThisWeek: number;
+}
+
+export interface CreateUserPayload {
+  name: string;
+  designation: string;
+  phone: string;
+  email: string;
+  username: string;            // may be same as email if checkbox ticked
+  password: string;
+}

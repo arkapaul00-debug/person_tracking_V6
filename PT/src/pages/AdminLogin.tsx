@@ -1,65 +1,34 @@
-// ═══ FILE: src/pages/Login.tsx ═══
+// ═══ FILE: src/pages/AdminLogin.tsx ═══
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSentinelStore } from '@utils/store';
-import { login } from '@utils/auth'; // Using existing auth for user login
 
-const Login: React.FC = () => {
+const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const managedUsers = useSentinelStore(state => state.managedUsers);
+  const ADMIN_USERNAME = 'ADMIN';
+  const ADMIN_PASSWORD = 'admin123';
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setErrorMsg('');
+    setError(false);
     
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Check against managedUsers first as per prompt (or fallback to normal login)
-    const foundUser = managedUsers.find(u => u.username === username);
     
-    if (foundUser) {
-      if (foundUser.status === 'suspended') {
-        setErrorMsg('⚠ Account suspended. Contact your administrator.');
-        setLoading(false);
-        return;
-      }
-      if (foundUser.passwordHash === password) { // Simulate hash check
-        // Login success
-        useSentinelStore.getState().setUser({
-          id: foundUser.id,
-          username: foundUser.username,
-          fullName: foundUser.name,
-          email: foundUser.email,
-          role: 'viewer', // default mapped role
-          status: 'active',
-          cameraPermissions: [],
-          createdAt: foundUser.createdAt,
-          lastLoginAt: Date.now(),
-          token: 'simulated-token',
-          expiresAt: Date.now() + 3600000
-        });
-        navigate('/monitoring');
-      } else {
-        setErrorMsg('⛔ ACCESS DENIED — Invalid username or password');
-      }
+    if (username.trim() === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      useSentinelStore.getState().setAdminAuthenticated(true);
+      navigate('/admin/dashboard');
     } else {
-      // Fallback to normal mock login just in case it's a default user from previous phases
-      try {
-        await login({ username, password });
-        navigate('/monitoring');
-      } catch (err: unknown) {
-        setErrorMsg('⛔ ACCESS DENIED — Invalid username or password');
-      }
+      setError(true);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -68,7 +37,7 @@ const Login: React.FC = () => {
       {/* Background Animated Grid */}
       <div style={{
         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-        backgroundImage: 'linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px)',
+        backgroundImage: 'linear-gradient(rgba(255, 59, 59, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 59, 59, 0.05) 1px, transparent 1px)',
         backgroundSize: '40px 40px',
         transform: 'perspective(500px) rotateX(60deg)',
         transformOrigin: 'bottom',
@@ -76,33 +45,34 @@ const Login: React.FC = () => {
         pointerEvents: 'none',
       }}></div>
 
-      <div className={`auth-card auth-card-user ${errorMsg.includes('ACCESS DENIED') ? 'shake' : ''}`} style={{ position: 'relative', zIndex: 10, background: 'rgba(10, 14, 26, 0.97)' }}>
+      <div className={`auth-card auth-card-admin ${error ? 'shake' : ''}`} style={{ position: 'relative', zIndex: 10 }}>
         
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ margin: '0 auto 16px', color: '#00d4ff', width: '48px', height: '48px' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-              <polyline points="2 17 12 22 22 17"></polyline>
-              <polyline points="2 12 12 17 22 12"></polyline>
-            </svg>
-          </div>
-          <h2 style={{ fontFamily: 'Orbitron, monospace', color: '#00d4ff', fontSize: '1.5rem', margin: 0, letterSpacing: '2px' }}>
-            USER ACCESS
+          <svg style={{ color: '#ff3b3b', width: '48px', height: '48px', margin: '0 auto 16px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <h2 style={{ fontFamily: 'Orbitron, monospace', color: '#ff3b3b', fontSize: '1.5rem', margin: 0, letterSpacing: '2px' }}>
+            ADMIN ACCESS
           </h2>
           <div style={{ color: '#7a8db0', fontSize: '0.75rem', marginTop: '8px', letterSpacing: '1px' }}>
-            ENTER YOUR CREDENTIALS TO ACCESS THE SYSTEM
+            RESTRICTED — AUTHORIZED PERSONNEL ONLY
           </div>
         </div>
 
-        <div style={{ height: '1px', background: 'rgba(0, 212, 255, 0.2)', margin: '24px 0' }}></div>
+        <div style={{ height: '1px', background: 'rgba(255, 59, 59, 0.3)', margin: '24px 0' }}></div>
+
+        {/* Warning Banner */}
+        <div style={{ background: 'rgba(255, 170, 0, 0.1)', borderLeft: '3px solid #ffaa00', padding: '12px', fontSize: '0.75rem', color: '#ffaa00', marginBottom: '24px' }}>
+          ⚠ This portal is monitored and logged. Unauthorized access attempts will be reported.
+        </div>
 
         {/* Form */}
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleAdminLogin}>
           
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', color: '#7a8db0', fontSize: '0.7rem', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '1px' }}>
-              USERNAME
+              ADMIN USERNAME
             </label>
             <div style={{ position: 'relative' }}>
               <div style={{ position: 'absolute', left: '12px', top: '12px', color: '#7a8db0' }}>
@@ -110,9 +80,9 @@ const Login: React.FC = () => {
               </div>
               <input 
                 type="text" 
-                className="sentinel-input"
+                className="sentinel-input admin-input"
                 style={{ paddingLeft: '36px' }}
-                placeholder="Enter username"
+                placeholder="Enter admin username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="off"
@@ -120,9 +90,9 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ marginBottom: '32px' }}>
+          <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', color: '#7a8db0', fontSize: '0.7rem', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '1px' }}>
-              PASSWORD
+              ADMIN PASSWORD
             </label>
             <div style={{ position: 'relative' }}>
               <div style={{ position: 'absolute', left: '12px', top: '12px', color: '#7a8db0' }}>
@@ -130,7 +100,7 @@ const Login: React.FC = () => {
               </div>
               <input 
                 type={showPassword ? "text" : "password"} 
-                className="sentinel-input"
+                className="sentinel-input admin-input"
                 style={{ paddingLeft: '36px', paddingRight: '36px' }}
                 placeholder="••••••••"
                 value={password}
@@ -148,39 +118,33 @@ const Login: React.FC = () => {
 
           <button type="submit" disabled={loading} style={{
             width: '100%',
-            background: loading ? '#0099cc' : '#00d4ff',
-            color: '#020810',
+            background: loading ? '#660000' : '#cc0000',
+            color: 'white',
             border: 'none',
             padding: '16px',
             fontFamily: 'Orbitron, monospace',
             fontSize: '1rem',
-            fontWeight: 'bold',
             letterSpacing: '1px',
             cursor: loading ? 'wait' : 'pointer',
             borderRadius: '4px',
             transition: 'all 0.2s'
           }}
-          onMouseOver={(e) => !loading && (e.currentTarget.style.background = '#33e0ff', e.currentTarget.style.boxShadow = '0 0 15px rgba(0, 212, 255, 0.4)')}
-          onMouseOut={(e) => !loading && (e.currentTarget.style.background = '#00d4ff', e.currentTarget.style.boxShadow = 'none')}
+          onMouseOver={(e) => !loading && (e.currentTarget.style.background = '#ff1a1a', e.currentTarget.style.boxShadow = '0 0 15px rgba(255, 59, 59, 0.4)')}
+          onMouseOut={(e) => !loading && (e.currentTarget.style.background = '#cc0000', e.currentTarget.style.boxShadow = 'none')}
           >
-            {loading ? <div className="sentinel-spinner" style={{ margin: '0 auto', borderTopColor: '#020810' }}></div> : 'ENTER SYSTEM'}
+            {loading ? <div className="sentinel-spinner" style={{ margin: '0 auto' }}></div> : 'ACCESS SYSTEM'}
           </button>
         </form>
 
         {/* Error State */}
-        {errorMsg && (
-          <div style={{ marginTop: '16px', 
-            background: errorMsg.includes('suspended') ? 'rgba(255, 170, 0, 0.1)' : 'rgba(255, 59, 59, 0.1)', 
-            border: `1px solid ${errorMsg.includes('suspended') ? '#ffaa00' : '#ff3b3b'}`, 
-            color: errorMsg.includes('suspended') ? '#ffaa00' : '#ff3b3b', 
-            padding: '12px', fontSize: '0.8rem', textAlign: 'center', borderRadius: '4px' 
-          }}>
-            {errorMsg}
+        {error && (
+          <div style={{ marginTop: '16px', background: 'rgba(255, 59, 59, 0.1)', border: '1px solid #ff3b3b', color: '#ff3b3b', padding: '12px', fontSize: '0.8rem', textAlign: 'center', borderRadius: '4px' }}>
+            ⛔ ACCESS DENIED — Invalid credentials
           </div>
         )}
 
         <div style={{ marginTop: '32px', textAlign: 'center' }}>
-          <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: '#7a8db0', fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'monospace', textDecoration: 'none' }}>
+          <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: '#00d4ff', fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'monospace', textDecoration: 'none' }}>
             ← Return to Main Terminal
           </button>
         </div>
@@ -190,4 +154,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default AdminLogin;
