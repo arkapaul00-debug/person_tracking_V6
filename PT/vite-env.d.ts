@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_APP_TITLE: string;
   readonly VITE_MAX_ALERT_DISPLAY: string;
   readonly VITE_ALERT_AUTO_DISMISS_MS: string;
+  readonly VITE_USE_MOCK_BACKEND: string;
 }
 
 interface ImportMeta {

@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
     "clean": "rimraf dist"
   },
   "dependencies": {
@@ -14,6 +16,7 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.24.0",
     "zustand": "^4.5.4",
+    "lucide-react": "^0.460.0",
     "grpc-web": "^1.5.0",
     "google-protobuf": "^3.21.4"
   },
